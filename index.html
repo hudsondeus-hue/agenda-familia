@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f4d3f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Agenda Família">
+<title>Agenda da Família</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏡</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f1e7; --card:#fffdf8; --ink:#1d2a24; --muted:#6b756f; --line:#e7dfcf;
+  --brand:#1f4d3f; --brand-2:#2f6b57; --accent:#d9774a; --accent-soft:#fbe7dc;
+  --ok:#2e8b57; --warn:#c98a12; --bad:#c0392b; --chip:#efe8da;
+  --shadow:0 1px 2px rgba(30,40,35,.06),0 6px 18px rgba(30,40,35,.06);
+  --r:16px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Nunito Sans",system-ui,sans-serif;font-size:16px}
+button,input,select,textarea{font:inherit;color:inherit}
+.app{max-width:640px;margin:0 auto;min-height:100vh;padding-bottom:calc(90px + env(safe-area-inset-bottom))}
+
+/* Cabeçalho */
+header{background:var(--brand);color:#fff;padding:calc(18px + env(safe-area-inset-top)) 18px 22px;border-radius:0 0 26px 26px;position:relative;overflow:hidden}
+header::after{content:"";position:absolute;right:-40px;top:-40px;width:170px;height:170px;border-radius:50%;background:rgba(255,255,255,.06)}
+header h1{font-family:Fraunces,serif;font-weight:700;font-size:26px;margin:0;letter-spacing:-.3px}
+header .sub{opacity:.8;font-size:14px;margin-top:4px}
+header .sub::first-letter{text-transform:uppercase}
+header .tab-title{font-size:13px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#f4c9b3;margin-bottom:6px}
+
+main{padding:16px}
+section{display:none}
+section.on{display:block;animation:fade .2s ease}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* Chips de filtro */
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 10px;margin:0 -2px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{border:0;background:var(--chip);padding:8px 14px;border-radius:999px;white-space:nowrap;font-weight:700;font-size:14px;display:flex;align-items:center;gap:6px;cursor:pointer}
+.chip.on{background:var(--brand);color:#fff}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex:none}
+
+.seg{display:flex;background:var(--chip);border-radius:12px;padding:4px;margin-bottom:14px}
+.seg button{flex:1;border:0;background:transparent;padding:8px;border-radius:9px;font-weight:700;font-size:14px;color:var(--muted);cursor:pointer}
+.seg button.on{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+
+/* Cards */
+.day-h{font-weight:800;font-size:13px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin:18px 4px 8px;display:flex;align-items:center;gap:8px}
+.day-h .hoje{background:var(--accent);color:#fff;padding:2px 8px;border-radius:6px;letter-spacing:.5px}
+.card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:14px;margin-bottom:10px;display:flex;gap:12px;align-items:flex-start;cursor:pointer;border:1px solid transparent}
+.card:active{transform:scale(.99)}
+.ev-time{min-width:54px;text-align:center;background:var(--accent-soft);color:#9a4a26;border-radius:10px;padding:8px 4px;font-weight:800;font-size:15px;line-height:1.1}
+.ev-time small{display:block;font-weight:700;font-size:10px;opacity:.8;margin-top:2px}
+.card .body{flex:1;min-width:0}
+.card .t{font-weight:800;font-size:16px;margin-bottom:2px;word-wrap:break-word}
+.card .d{color:var(--muted);font-size:14px;white-space:pre-wrap;word-wrap:break-word}
+.who{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.tag{font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--chip);display:inline-flex;align-items:center;gap:5px}
+
+/* Supermercado */
+.quick{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:12px;margin-bottom:14px}
+.quick .row{display:flex;gap:8px}
+.quick input{flex:1;min-width:0}
+.list{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;margin-bottom:14px}
+.li{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.li:last-child{border-bottom:0}
+.check{width:26px;height:26px;border-radius:8px;border:2px solid var(--brand-2);background:transparent;flex:none;display:grid;place-items:center;cursor:pointer;padding:0}
+.check.on{background:var(--brand-2)}
+.check.on::after{content:"";width:7px;height:12px;border:solid #fff;border-width:0 3px 3px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.li .body{flex:1;min-width:0}
+.li .t{font-weight:700}
+.li.done .t{text-decoration:line-through;color:var(--muted)}
+.li .m{font-size:12px;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:5px}
+.qty{font-weight:800;color:var(--accent);margin-left:4px}
+.x{border:0;background:transparent;color:var(--muted);font-size:20px;padding:4px 8px;cursor:pointer;border-radius:8px}
+.x:hover{background:var(--chip)}
+.sec-h{display:flex;justify-content:space-between;align-items:center;margin:4px 4px 8px}
+.sec-h b{font-size:13px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)}
+.link{border:0;background:transparent;color:var(--accent);font-weight:800;font-size:14px;cursor:pointer;padding:4px}
+
+/* Ações */
+.pill{font-size:12px;font-weight:800;padding:4px 10px;border-radius:999px;border:0;cursor:pointer;white-space:nowrap}
+.st-Pendente{background:#fdf0d5;color:#8a5a00}
+.st-Em{background:#dbeafe;color:#1e4f9a}
+.st-Concluída{background:#d9f0e2;color:#1d6b40}
+.prazo{font-size:12px;font-weight:800;margin-top:6px;display:inline-block}
+.prazo.late{color:var(--bad)} .prazo.soon{color:var(--warn)} .prazo.ok{color:var(--muted)}
+.card.done .t{text-decoration:line-through;color:var(--muted)}
+
+/* Família */
+.member{align-items:center}
+.avatar{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:18px;flex:none}
+.small-btn{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:7px 11px;font-size:13px;font-weight:700;cursor:pointer}
+.help{background:var(--accent-soft);border-radius:var(--r);padding:14px 16px;font-size:14px;line-height:1.5;margin:16px 0 70px}
+.help b{color:#8a3f1d}
+.help ol{margin:6px 0 0;padding-left:20px}
+.me-box{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;font-weight:700}
+.me-box select{flex:1}
+
+/* Vazio */
+.empty{text-align:center;color:var(--muted);padding:40px 20px}
+.empty .ic{font-size:44px;margin-bottom:8px}
+
+/* Formulários */
+label{display:block;font-size:13px;font-weight:800;color:var(--muted);margin:12px 0 6px;letter-spacing:.3px}
+input,select,textarea{width:100%;border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:11px 12px;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--brand-2)}
+textarea{min-height:80px;resize:vertical}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{border:0;background:var(--brand);color:#fff;font-weight:800;padding:13px 18px;border-radius:12px;cursor:pointer;width:100%}
+.btn.sec{background:var(--chip);color:var(--ink)}
+.btn.danger{background:transparent;color:var(--bad);border:1.5px solid #f0c9c3}
+.btn.add{width:auto;padding:11px 16px}
+.actions{display:flex;gap:10px;margin-top:18px}
+.who-pick{display:flex;flex-wrap:wrap;gap:8px}
+.who-pick .chip{background:#fff;border:1.5px solid var(--line)}
+.who-pick .chip.on{background:var(--brand);border-color:var(--brand)}
+.switch{display:flex;align-items:center;gap:10px;margin-top:14px;font-weight:700}
+.switch input{width:22px;height:22px;accent-color:var(--brand)}
+.colors{display:flex;gap:10px;flex-wrap:wrap}
+.colors button{width:34px;height:34px;border-radius:50%;border:3px solid transparent;cursor:pointer}
+.colors button.on{border-color:var(--ink)}
+
+/* Bottom sheet */
+.overlay{position:fixed;inset:0;background:rgba(20,30,25,.45);display:none;align-items:flex-end;justify-content:center;z-index:50}
+.overlay.on{display:flex;animation:fade .15s}
+.sheet{background:var(--bg);width:100%;max-width:640px;max-height:92vh;overflow:auto;border-radius:22px 22px 0 0;padding:10px 18px calc(22px + env(safe-area-inset-bottom))}
+.sheet .grab{width:44px;height:5px;border-radius:9px;background:#d6cdb9;margin:4px auto 12px}
+.sheet h2{font-family:Fraunces,serif;margin:0 0 4px;font-size:22px}
+
+/* Navegação */
+nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom);z-index:40}
+nav .in{display:flex;width:100%;max-width:640px}
+nav button{flex:1;border:0;background:transparent;padding:10px 4px 9px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11.5px;font-weight:800;color:var(--muted);cursor:pointer;position:relative}
+nav button .i{font-size:22px;filter:grayscale(1);opacity:.65}
+nav button.on{color:var(--brand)}
+nav button.on .i{filter:none;opacity:1}
+nav .badge{position:absolute;top:5px;left:calc(50% + 6px);background:var(--accent);color:#fff;font-size:10px;border-radius:999px;padding:1px 6px}
+.fab{position:fixed;right:max(18px,calc(50% - 302px));bottom:calc(84px + env(safe-area-inset-bottom));width:58px;height:58px;border-radius:18px;border:0;background:var(--accent);color:#fff;font-size:32px;box-shadow:0 8px 20px rgba(217,119,74,.45);cursor:pointer;z-index:41;display:grid;place-items:center;line-height:1}
+
+.toast{position:fixed;left:50%;bottom:calc(150px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:12px;font-weight:700;font-size:14px;z-index:60;opacity:0;transition:.2s;pointer-events:none;max-width:90vw;text-align:center}
+.toast.on{opacity:1}
+.setup{padding:30px 20px;line-height:1.6}
+.setup code{background:var(--chip);padding:2px 6px;border-radius:6px}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="tab-title" id="tabTitle">Agenda</div>
+    <h1>Agenda da Família</h1>
+    <div class="sub" id="hojeTxt"></div>
+  </header>
+
+  <main id="main">
+    <!-- AGENDA -->
+    <section id="s-agenda" class="on">
+      <div class="chips" id="agFiltro"></div>
+      <div class="seg" id="agPeriodo">
+        <button data-p="prox" class="on">Próximos</button>
+        <button data-p="pass">Passados</button>
+      </div>
+      <div id="agLista"></div>
+    </section>
+
+    <!-- SUPERMERCADO -->
+    <section id="s-mercado">
+      <form class="quick" id="mkForm">
+        <div class="row">
+          <input id="mkItem" placeholder="O que precisa comprar?" autocomplete="off" required>
+          <input id="mkQtd" placeholder="Qtd" style="max-width:80px" autocomplete="off">
+          <button class="btn add" type="submit">+</button>
+        </div>
+      </form>
+      <div class="sec-h"><b id="mkCont">Para comprar</b><button class="link" id="mkShare">Enviar no WhatsApp</button></div>
+      <div id="mkLista"></div>
+      <div class="sec-h" id="mkDoneH" style="display:none"><b>No carrinho</b><button class="link" id="mkLimpar">Limpar comprados</button></div>
+      <div id="mkDone"></div>
+    </section>
+
+    <!-- AÇÕES FUTURAS -->
+    <section id="s-acoes">
+      <div class="seg" id="acFiltro">
+        <button data-f="abertas" class="on">Abertas</button>
+        <button data-f="concluidas">Concluídas</button>
+        <button data-f="todas">Todas</button>
+      </div>
+      <div class="chips" id="acQuem"></div>
+      <div id="acLista"></div>
+    </section>
+
+    <!-- FAMÍLIA -->
+    <section id="s-familia">
+      <div class="me-box">👋 Neste aparelho, eu sou:
+        <select id="euSou"></select>
+      </div>
+      <div id="fmLista"></div>
+      <div class="help">
+        <b>Como ativar o aviso no WhatsApp (uma vez por pessoa)</b>
+        <ol>
+          <li>Abra <a href="https://www.callmebot.com/blog/free-api-whatsapp-messages/" target="_blank" rel="noopener">a página do CallMeBot</a> e salve nos contatos o número do bot que aparece lá.</li>
+          <li>No WhatsApp, mande para esse contato: <b>I allow callmebot to send me messages</b></li>
+          <li>O bot responde com a sua <b>APIKEY</b>. Cadastre-a aqui no seu nome, junto com seu número (com 55 e DDD).</li>
+          <li>Toque em <b>Testar</b> para conferir.</li>
+        </ol>
+        Os avisos chegam todo dia por volta das 8h, com os eventos do dia.
+      </div>
+    </section>
+  </main>
+</div>
+
+<button class="fab" id="fab" aria-label="Adicionar">+</button>
+
+<nav><div class="in">
+  <button data-tab="agenda" class="on"><span class="i">📅</span>Agenda</button>
+  <button data-tab="mercado"><span class="i">🛒</span>Supermercado<span class="badge" id="mkBadge" style="display:none"></span></button>
+  <button data-tab="acoes"><span class="i">✅</span>Ações Futuras</button>
+  <button data-tab="familia"><span class="i">👨‍👩‍👧‍👦</span>Família</button>
+</div></nav>
+
+<div class="overlay" id="ov"><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ================== Estado e utilidades ==================
+const S = { membros: [], eventos: [], mercado: [], acoes: [] };
+const UI = { tab: 'agenda', agQuem: 'todos', agPer: 'prox', acF: 'abertas', acQuem: 'todos' };
+const CORES = ['#1f4d3f','#d9774a','#3b82f6','#a855f7','#e11d48','#0d9488','#ca8a04','#475569'];
+const TITULOS = { agenda:'Agenda', mercado:'Compra da semana', acoes:'Ações Futuras', familia:'Família' };
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const hojeISO = () => new Date().toLocaleDateString('en-CA');
+const addDias = (iso, n) => { const [a,m,d] = iso.split('-').map(Number); const x = new Date(a, m-1, d+n); return x.toLocaleDateString('en-CA'); };
+const dataLonga = iso => { const [a,m,d] = iso.split('-').map(Number); return new Date(a, m-1, d).toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'long' }); };
+const dataCurta = iso => { const [a,m,d] = iso.split('-').map(Number); return new Date(a, m-1, d).toLocaleDateString('pt-BR', { day:'2-digit', month:'short' }).replace('.', ''); };
+const membro = id => S.membros.find(m => m.id === id);
+const inicial = n => (n || '?').trim().charAt(0).toUpperCase();
+
+function lsGet(k){ try { return localStorage.getItem(k); } catch { return null; } }
+function lsSet(k,v){ try { localStorage.setItem(k, v); } catch {} }
+const euSou = () => lsGet('agenda_eu') || '';
+
+function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 2400); }
+
+function tagMembro(id){
+  const m = membro(id); if (!m) return '';
+  return `<span class="tag"><span class="dot" style="background:${esc(m.cor)}"></span>${esc(m.nome)}</span>`;
+}
+
+async function op(promise, okMsg){
+  const { error } = await promise;
+  if (error) { toast('Erro: ' + error.message); console.error(error); return false; }
+  if (okMsg) toast(okMsg);
+  await carregar();
+  return true;
+}
+
+// ================== Carregamento ==================
+// Cliente do banco: fala com /api/dados (os dados ficam no Upstash Redis, via Vercel)
+async function api(corpo){
+  const r = await fetch('/api/dados', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(corpo) });
+  const j = await r.json().catch(() => ({}));
+  return r.ok ? { data:j, error:null } : { data:null, error:{ message: j.erro || ('HTTP ' + r.status) } };
+}
+const db = {
+  from(tabela){
+    const q = { acao:null, dados:null, filtro:{} };
+    const run = () => api({ acao:q.acao, tabela, dados:q.dados, filtro:q.filtro });
+    const b = {
+      insert(d){ q.acao='inserir'; q.dados=d; return b; },
+      update(d){ q.acao='atualizar'; q.dados=d; return b; },
+      delete(){ q.acao='excluir'; return b; },
+      eq(k,v){ q.filtro[k]=v; return b; },
+      then(ok, fail){ return run().then(ok, fail); }
+    };
+    return b;
+  }
+};
+
+let carregando = false;
+async function carregar(){
+  if (carregando) return; carregando = true;
+  try {
+    const r = await fetch('/api/dados', { cache:'no-store' });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) { if (j.erro === 'BANCO_NAO_CONECTADO') telaConfig(); else toast('Erro ao carregar: ' + (j.erro || r.status)); return false; }
+    const porTexto = k => (x, y) => String(x[k] ?? '').localeCompare(String(y[k] ?? ''), 'pt-BR');
+    S.membros = j.membros.sort(porTexto('nome'));
+    S.eventos = j.eventos.sort((x, y) => x.data.localeCompare(y.data) || (x.hora || '').localeCompare(y.hora || ''));
+    S.mercado = j.supermercado.sort(porTexto('created_at'));
+    S.acoes = j.acoes.sort((x, y) => (x.prazo || '9999').localeCompare(y.prazo || '9999'));
+    render();
+    return true;
+  } catch { toast('Sem conexão com o servidor'); return false; }
+  finally { carregando = false; }
+}
+
+function render(){
+  renderAgenda(); renderMercado(); renderAcoes(); renderFamilia();
+}
+
+// ================== Agenda ==================
+function renderAgenda(){
+  const chips = [`<button class="chip ${UI.agQuem==='todos'?'on':''}" data-q="todos">Todos</button>`,
+                 `<button class="chip ${UI.agQuem==='familia'?'on':''}" data-q="familia">🏡 Família toda</button>`]
+    .concat(S.membros.map(m => `<button class="chip ${UI.agQuem===m.id?'on':''}" data-q="${m.id}"><span class="dot" style="background:${esc(m.cor)}"></span>${esc(m.nome)}</button>`));
+  $('#agFiltro').innerHTML = chips.join('');
+
+  const hoje = hojeISO();
+  let evs = S.eventos.filter(e => UI.agPer === 'prox' ? e.data >= hoje : e.data < hoje);
+  if (UI.agQuem === 'familia') evs = evs.filter(e => !e.membros || !e.membros.length);
+  else if (UI.agQuem !== 'todos') evs = evs.filter(e => !e.membros || !e.membros.length || e.membros.includes(UI.agQuem));
+  if (UI.agPer === 'pass') evs = evs.slice().reverse();
+
+  if (!evs.length) {
+    $('#agLista').innerHTML = `<div class="empty"><div class="ic">🗓️</div>${UI.agPer==='prox' ? 'Nenhum evento por vir.<br>Toque no <b>+</b> para adicionar.' : 'Nenhum evento passado.'}</div>`;
+    return;
+  }
+  const amanha = addDias(hoje, 1);
+  let html = '', ultimo = '';
+  for (const e of evs) {
+    if (e.data !== ultimo) {
+      ultimo = e.data;
+      const rot = e.data === hoje ? '<span class="hoje">Hoje</span>' : e.data === amanha ? 'Amanhã · ' : '';
+      html += `<div class="day-h">${rot}${e.data===hoje ? esc(dataCurta(e.data)) : esc(dataLonga(e.data))}</div>`;
+    }
+    const quem = e.membros && e.membros.length ? e.membros.map(tagMembro).join('') : '<span class="tag">🏡 Família toda</span>';
+    html += `<div class="card" data-ev="${e.id}">
+      <div class="ev-time">${e.hora ? esc(e.hora.slice(0,5)) : '<small>DIA</small>TODO'}</div>
+      <div class="body"><div class="t">${esc(e.nome)}</div>${e.descricao ? `<div class="d">${esc(e.descricao)}</div>` : ''}<div class="who">${quem}</div></div>
+    </div>`;
+  }
+  $('#agLista').innerHTML = html;
+}
+
+function formEvento(e){
+  const sel = new Set(e?.membros || []);
+  abrir(`
+    <h2>${e ? 'Editar evento' : 'Novo evento'}</h2>
+    <form id="fEv">
+      <label>Nome</label><input name="nome" required value="${esc(e?.nome)}" placeholder="Ex.: Dentista da Ana">
+      <div class="grid2">
+        <div><label>Data</label><input type="date" name="data" required value="${esc(e?.data || hojeISO())}"></div>
+        <div><label>Hora</label><input type="time" name="hora" value="${esc(e?.hora ? e.hora.slice(0,5) : '')}"></div>
+      </div>
+      <label>Descrição</label><textarea name="descricao" placeholder="Endereço, o que levar, observações...">${esc(e?.descricao)}</textarea>
+      <label>De quem é o evento?</label>
+      <div class="who-pick" id="evQuem">
+        <button type="button" class="chip ${sel.size?'':'on'}" data-fam="1">🏡 Família toda</button>
+        ${S.membros.map(m => `<button type="button" class="chip ${sel.has(m.id)?'on':''}" data-m="${m.id}"><span class="dot" style="background:${esc(m.cor)}"></span>${esc(m.nome)}</button>`).join('')}
+      </div>
+      ${S.membros.length ? '' : '<div style="font-size:13px;color:var(--muted);margin-top:6px">Cadastre as pessoas na aba Família para escolher de quem é o evento.</div>'}
+      <div class="actions">
+        ${e ? '<button type="button" class="btn danger" id="evDel">Excluir</button>' : ''}
+        <button class="btn" type="submit">Salvar</button>
+      </div>
+    </form>`);
+
+  const box = $('#evQuem');
+  box.onclick = ev => {
+    const b = ev.target.closest('.chip'); if (!b) return;
+    if (b.dataset.fam) { box.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c === b)); return; }
+    b.classList.toggle('on');
+    const algum = box.querySelector('[data-m].on');
+    box.querySelector('[data-fam]').classList.toggle('on', !algum);
+  };
+  $('#fEv').onsubmit = async ev => {
+    ev.preventDefault();
+    const f = new FormData(ev.target);
+    const dados = {
+      nome: f.get('nome').trim(), data: f.get('data'), hora: f.get('hora') || null,
+      descricao: f.get('descricao').trim() || null,
+      membros: [...box.querySelectorAll('[data-m].on')].map(b => b.dataset.m)
+    };
+    const ok = await op(e ? db.from('eventos').update(dados).eq('id', e.id) : db.from('eventos').insert(dados), 'Evento salvo');
+    if (ok) fechar();
+  };
+  if (e) $('#evDel').onclick = async () => {
+    if (!confirm('Excluir este evento?')) return;
+    if (await op(db.from('eventos').delete().eq('id', e.id), 'Evento excluído')) fechar();
+  };
+}
+
+// ================== Supermercado ==================
+function renderMercado(){
+  const pend = S.mercado.filter(i => !i.comprado);
+  const feitos = S.mercado.filter(i => i.comprado);
+  const b = $('#mkBadge'); b.style.display = pend.length ? '' : 'none'; b.textContent = pend.length;
+  $('#mkCont').textContent = pend.length ? `Para comprar (${pend.length})` : 'Para comprar';
+
+  const linha = i => {
+    const m = membro(i.adicionado_por);
+    return `<div class="li ${i.comprado?'done':''}">
+      <button class="check ${i.comprado?'on':''}" data-tg="${i.id}" aria-label="Marcar"></button>
+      <div class="body"><div class="t">${esc(i.item)}${i.quantidade ? `<span class="qty">${esc(i.quantidade)}</span>` : ''}</div>
+      ${m ? `<div class="m"><span class="dot" style="background:${esc(m.cor)};width:8px;height:8px"></span>${esc(m.nome)}</div>` : ''}</div>
+      <button class="x" data-rm="${i.id}" aria-label="Remover">×</button>
+    </div>`;
+  };
+  $('#mkLista').innerHTML = pend.length ? `<div class="list">${pend.map(linha).join('')}</div>`
+    : `<div class="empty"><div class="ic">🛒</div>Lista vazia.<br>Digite acima o que precisa comprar.</div>`;
+  $('#mkDoneH').style.display = feitos.length ? '' : 'none';
+  $('#mkDone').innerHTML = feitos.length ? `<div class="list">${feitos.map(linha).join('')}</div>` : '';
+}
+
+// ================== Ações Futuras ==================
+function renderAcoes(){
+  $('#acQuem').innerHTML = [`<button class="chip ${UI.acQuem==='todos'?'on':''}" data-q="todos">Todos</button>`]
+    .concat(S.membros.map(m => `<button class="chip ${UI.acQuem===m.id?'on':''}" data-q="${m.id}"><span class="dot" style="background:${esc(m.cor)}"></span>${esc(m.nome)}</button>`)).join('');
+
+  let lst = S.acoes.slice();
+  if (UI.acF === 'abertas') lst = lst.filter(a => a.status !== 'Concluída');
+  if (UI.acF === 'concluidas') lst = lst.filter(a => a.status === 'Concluída');
+  if (UI.acQuem !== 'todos') lst = lst.filter(a => a.responsavel === UI.acQuem);
+
+  if (!lst.length) { $('#acLista').innerHTML = `<div class="empty"><div class="ic">📝</div>Nenhuma ação aqui.<br>Toque no <b>+</b> para planejar algo.</div>`; return; }
+
+  const hoje = hojeISO(), em7 = addDias(hoje, 7);
+  $('#acLista').innerHTML = lst.map(a => {
+    let prazo = '';
+    if (a.prazo) {
+      const cls = a.status === 'Concluída' ? 'ok' : a.prazo < hoje ? 'late' : a.prazo <= em7 ? 'soon' : 'ok';
+      const txt = a.status !== 'Concluída' && a.prazo < hoje ? 'Atrasada · ' : a.prazo === hoje ? 'Vence hoje · ' : '';
+      prazo = `<span class="prazo ${cls}">📆 ${txt}${esc(dataCurta(a.prazo))}</span>`;
+    }
+    const stCls = 'st-' + (a.status || 'Pendente').split(' ')[0];
+    return `<div class="card ${a.status==='Concluída'?'done':''}" data-ac="${a.id}">
+      <div class="body"><div class="t">${esc(a.nome)}</div>${a.descricao ? `<div class="d">${esc(a.descricao)}</div>` : ''}
+        <div class="who">${a.responsavel ? tagMembro(a.responsavel) : ''}${prazo}</div></div>
+      <button class="pill ${stCls}" data-st="${a.id}">${esc(a.status || 'Pendente')}</button>
+    </div>`;
+  }).join('');
+}
+
+function formAcao(a){
+  abrir(`
+    <h2>${a ? 'Editar ação' : 'Nova ação futura'}</h2>
+    <form id="fAc">
+      <label>O que precisa ser feito</label><input name="nome" required value="${esc(a?.nome)}" placeholder="Ex.: Renovar seguro do carro">
+      <label>Descrição</label><textarea name="descricao">${esc(a?.descricao)}</textarea>
+      <div class="grid2">
+        <div><label>Responsável</label><select name="responsavel"><option value="">—</option>
+          ${S.membros.map(m => `<option value="${m.id}" ${a?.responsavel===m.id || (!a && euSou()===m.id) ?'selected':''}>${esc(m.nome)}</option>`).join('')}</select></div>
+        <div><label>Prazo</label><input type="date" name="prazo" value="${esc(a?.prazo)}"></div>
+      </div>
+      <label>Status</label>
+      <select name="status">${['Pendente','Em andamento','Concluída'].map(s => `<option ${ (a?.status||'Pendente')===s ? 'selected':''}>${s}</option>`).join('')}</select>
+      <div class="actions">
+        ${a ? '<button type="button" class="btn danger" id="acDel">Excluir</button>' : ''}
+        <button class="btn" type="submit">Salvar</button>
+      </div>
+    </form>`);
+  $('#fAc').onsubmit = async ev => {
+    ev.preventDefault();
+    const f = new FormData(ev.target);
+    const dados = { nome: f.get('nome').trim(), descricao: f.get('descricao').trim() || null,
+      responsavel: f.get('responsavel') || null, prazo: f.get('prazo') || null, status: f.get('status') };
+    if (await op(a ? db.from('acoes').update(dados).eq('id', a.id) : db.from('acoes').insert(dados), 'Ação salva')) fechar();
+  };
+  if (a) $('#acDel').onclick = async () => {
+    if (!confirm('Excluir esta ação?')) return;
+    if (await op(db.from('acoes').delete().eq('id', a.id), 'Ação excluída')) fechar();
+  };
+}
+
+// ================== Família ==================
+function renderFamilia(){
+  const eu = euSou();
+  $('#euSou').innerHTML = `<option value="">— escolha —</option>` + S.membros.map(m => `<option value="${m.id}" ${eu===m.id?'selected':''}>${esc(m.nome)}</option>`).join('');
+  if (!S.membros.length) { $('#fmLista').innerHTML = `<div class="empty"><div class="ic">👨‍👩‍👧‍👦</div>Ninguém cadastrado ainda.<br>Toque no <b>+</b> para adicionar as pessoas da família.</div>`; return; }
+  $('#fmLista').innerHTML = S.membros.map(m => {
+    const zap = m.telefone && m.apikey;
+    const st = !m.avisar ? '🔕 Aviso desligado' : zap ? '🟢 Recebe aviso no WhatsApp' : '⚪ WhatsApp não configurado';
+    return `<div class="card member" data-mb="${m.id}">
+      <div class="avatar" style="background:${esc(m.cor)}">${esc(inicial(m.nome))}</div>
+      <div class="body"><div class="t">${esc(m.nome)}</div><div class="d">${esc(m.telefone || 'sem telefone')}<br>${st}</div></div>
+      ${zap ? `<button class="small-btn" data-test="${m.id}">Testar</button>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function formMembro(m){
+  let cor = m?.cor || CORES[S.membros.length % CORES.length];
+  abrir(`
+    <h2>${m ? 'Editar pessoa' : 'Nova pessoa da família'}</h2>
+    <form id="fMb">
+      <label>Nome</label><input name="nome" required value="${esc(m?.nome)}">
+      <label>WhatsApp (com 55 e DDD)</label><input name="telefone" inputmode="tel" placeholder="+55 31 99999-8888" value="${esc(m?.telefone)}">
+      <label>APIKEY do CallMeBot</label><input name="apikey" inputmode="numeric" placeholder="Número que o bot enviou" value="${esc(m?.apikey)}">
+      <label>Cor</label>
+      <div class="colors" id="mbCor">${CORES.map(c => `<button type="button" data-c="${c}" class="${c===cor?'on':''}" style="background:${c}"></button>`).join('')}</div>
+      <label class="switch"><input type="checkbox" name="avisar" ${m?.avisar === false ? '' : 'checked'}> Receber os eventos do dia no WhatsApp</label>
+      <div class="actions">
+        ${m ? '<button type="button" class="btn danger" id="mbDel">Excluir</button>' : ''}
+        <button class="btn" type="submit">Salvar</button>
+      </div>
+    </form>`);
+  $('#mbCor').onclick = ev => { const b = ev.target.closest('[data-c]'); if (!b) return; cor = b.dataset.c; $('#mbCor').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); };
+  $('#fMb').onsubmit = async ev => {
+    ev.preventDefault();
+    const f = new FormData(ev.target);
+    const dados = { nome: f.get('nome').trim(), telefone: f.get('telefone').trim() || null,
+      apikey: f.get('apikey').trim() || null, cor, avisar: !!f.get('avisar') };
+    if (await op(m ? db.from('membros').update(dados).eq('id', m.id) : db.from('membros').insert(dados), 'Pessoa salva')) fechar();
+  };
+  if (m) $('#mbDel').onclick = async () => {
+    if (!confirm(`Excluir ${m.nome}? Os eventos continuam na agenda.`)) return;
+    const evs = S.eventos.filter(e => e.membros?.includes(m.id));
+    for (const e of evs) await db.from('eventos').update({ membros: e.membros.filter(x => x !== m.id) }).eq('id', e.id);
+    if (await op(db.from('membros').delete().eq('id', m.id), 'Pessoa excluída')) fechar();
+  };
+}
+
+// ================== Sheet / navegação ==================
+function abrir(html){ $('#sheet').innerHTML = '<div class="grab"></div>' + html; $('#ov').classList.add('on'); }
+function fechar(){ $('#ov').classList.remove('on'); }
+$('#ov').onclick = e => { if (e.target.id === 'ov') fechar(); };
+
+function irPara(tab){
+  UI.tab = tab;
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+  document.querySelectorAll('main section').forEach(s => s.classList.toggle('on', s.id === 's-' + tab));
+  $('#tabTitle').textContent = TITULOS[tab];
+  $('#fab').style.display = tab === 'mercado' ? 'none' : '';
+  lsSet('agenda_tab', tab);
+  window.scrollTo(0, 0);
+}
+document.querySelector('nav').onclick = e => { const b = e.target.closest('[data-tab]'); if (b) irPara(b.dataset.tab); };
+$('#fab').onclick = () => ({ agenda: () => formEvento(), acoes: () => formAcao(), familia: () => formMembro() })[UI.tab]?.();
+
+// ================== Eventos de clique ==================
+$('#agFiltro').onclick = e => { const b = e.target.closest('[data-q]'); if (b) { UI.agQuem = b.dataset.q; renderAgenda(); } };
+$('#agPeriodo').onclick = e => { const b = e.target.closest('[data-p]'); if (!b) return; UI.agPer = b.dataset.p; $('#agPeriodo').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); renderAgenda(); };
+$('#agLista').onclick = e => { const c = e.target.closest('[data-ev]'); if (c) formEvento(S.eventos.find(x => x.id === c.dataset.ev)); };
+
+$('#mkForm').onsubmit = async e => {
+  e.preventDefault();
+  const item = $('#mkItem').value.trim(); if (!item) return;
+  const dados = { item, quantidade: $('#mkQtd').value.trim() || null, adicionado_por: euSou() || null };
+  $('#mkItem').value = ''; $('#mkQtd').value = ''; $('#mkItem').focus();
+  await op(db.from('supermercado').insert(dados));
+};
+document.getElementById('s-mercado').addEventListener('click', async e => {
+  const tg = e.target.closest('[data-tg]'), rm = e.target.closest('[data-rm]');
+  if (tg) { const i = S.mercado.find(x => x.id === tg.dataset.tg); await op(db.from('supermercado').update({ comprado: !i.comprado }).eq('id', i.id)); }
+  if (rm) await op(db.from('supermercado').delete().eq('id', rm.dataset.rm));
+});
+$('#mkLimpar').onclick = async () => {
+  if (!confirm('Remover da lista todos os itens já comprados?')) return;
+  await op(db.from('supermercado').delete().eq('comprado', true), 'Lista limpa');
+};
+$('#mkShare').onclick = () => {
+  const pend = S.mercado.filter(i => !i.comprado);
+  if (!pend.length) return toast('A lista está vazia');
+  const txt = '🛒 *Compra da semana*\n\n' + pend.map(i => `• ${i.item}${i.quantidade ? ' (' + i.quantidade + ')' : ''}`).join('\n');
+  window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank');
+};
+
+$('#acFiltro').onclick = e => { const b = e.target.closest('[data-f]'); if (!b) return; UI.acF = b.dataset.f; $('#acFiltro').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); renderAcoes(); };
+$('#acQuem').onclick = e => { const b = e.target.closest('[data-q]'); if (b) { UI.acQuem = b.dataset.q; renderAcoes(); } };
+$('#acLista').onclick = async e => {
+  const st = e.target.closest('[data-st]');
+  if (st) {
+    const a = S.acoes.find(x => x.id === st.dataset.st);
+    const prox = { 'Pendente':'Em andamento', 'Em andamento':'Concluída', 'Concluída':'Pendente' }[a.status || 'Pendente'];
+    return op(db.from('acoes').update({ status: prox }).eq('id', a.id), prox);
+  }
+  const c = e.target.closest('[data-ac]'); if (c) formAcao(S.acoes.find(x => x.id === c.dataset.ac));
+};
+
+$('#euSou').onchange = e => { lsSet('agenda_eu', e.target.value); toast('Pronto! Seus itens sairão no seu nome'); };
+$('#fmLista').onclick = async e => {
+  const t = e.target.closest('[data-test]');
+  if (t) {
+    e.stopPropagation(); t.disabled = true; t.textContent = 'Enviando…';
+    try {
+      const r = await fetch('/api/teste?id=' + t.dataset.test); const j = await r.json();
+      toast(j.ok ? 'Mensagem enviada! Confira o WhatsApp' : 'Falhou: ' + (j.erro || j.resposta || 'verifique telefone e chave'));
+    } catch { toast('Não consegui falar com o servidor'); }
+    t.disabled = false; t.textContent = 'Testar'; return;
+  }
+  const c = e.target.closest('[data-mb]'); if (c) formMembro(membro(c.dataset.mb));
+};
+
+// ================== Início ==================
+function telaConfig(){
+  $('#main').innerHTML = `<div class="setup"><h2 style="font-family:Fraunces,serif">Quase lá! 🔧</h2>
+    Falta ligar o banco de dados. Na Vercel, abra o projeto → aba <b>Storage</b> → <b>Create Database</b> →
+    <b>Upstash for Redis</b> (plano Free) → conecte a este projeto. Depois vá em <b>Deployments</b> e faça <b>Redeploy</b>.</div>`;
+  $('#fab').style.display = 'none';
+}
+
+async function iniciar(){
+  $('#hojeTxt').textContent = new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long' });
+  irPara(lsGet('agenda_tab') || 'agenda');
+  if (!await carregar()) return;
+  // Atualiza sozinho: a cada 20s com o app aberto e sempre que volta para ele
+  setInterval(() => { if (!document.hidden && !$('#ov').classList.contains('on')) carregar(); }, 20000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) carregar(); });
+}
+iniciar();
+</script>
+</body>
+</html>
