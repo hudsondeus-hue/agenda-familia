@@ -1,4 +1,4 @@
-# Agenda da Família — como colocar no ar
+# Agenda Família de Deus — como colocar no ar
 
 App com 5 abas: **Agenda**, **Escola** (tarefas escolares), **Supermercado**, **Ações Futuras** e **Família**.
 Toda manhã, entre 6h e 7h, cada pessoa recebe no WhatsApp os eventos do dia dela + os da família toda, e as tarefas escolares que vencem hoje ou amanhã.

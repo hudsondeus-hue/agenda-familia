@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   try {
     const membro = await obter('membros', id);
     if (!membro) return res.status(404).json({ erro: 'membro não encontrado' });
-    const r = await enviarWhatsApp(membro, `✅ Teste da *Agenda da Família*: tudo certo, ${membro.nome}! Você vai receber aqui os eventos do dia, toda manhã.`);
+    const r = await enviarWhatsApp(membro, `✅ Teste da *Agenda Família de Deus*: tudo certo, ${membro.nome}! Você vai receber aqui os eventos do dia, toda manhã.`);
     return res.status(r.ok ? 200 : 502).json(r);
   } catch (e) {
     return res.status(500).json({ erro: String(e.message || e) });

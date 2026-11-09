@@ -58,7 +58,7 @@ export default async function handler(req, res) {
       });
 
       let texto = `Bom dia, ${membro.nome}! ☀️\n` +
-        `📅 *Agenda da Família — ${diaSemana}, ${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}*`;
+        `📅 *Agenda Família de Deus — ${diaSemana}, ${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}*`;
       if (linhas.length) texto += '\n\n' + linhas.join('\n\n');
       if (linhasTarefas.length) texto += '\n\n🎒 *Tarefas escolares*\n\n' + linhasTarefas.join('\n\n');
 
