@@ -218,6 +218,16 @@ body.quieto .anim{animation:none}
 .card.feito .t{text-decoration:line-through;color:var(--muted)}
 .card.feito{opacity:.7}
 .mat{font-size:12px;font-weight:800;padding:3px 9px;border-radius:999px;background:#e8e3f7;color:#5b3fa3}
+.mes-h{position:sticky;top:0;z-index:5;width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;border:0;cursor:pointer;
+  margin:16px 0 4px;padding:12px 16px;border-radius:14px;background:var(--brand);color:#fff;box-shadow:0 4px 14px rgba(31,77,63,.18);text-align:left}
+.mes-h:first-child{margin-top:4px}
+.mes-h.atual{background:linear-gradient(90deg,var(--brand),var(--brand-2))}
+.mes-n{font-family:Montserrat,system-ui,sans-serif;font-weight:800;font-size:16px;letter-spacing:1px;text-transform:uppercase;display:flex;align-items:baseline;gap:8px}
+.mes-n small{font-family:"Nunito Sans",sans-serif;font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;background:var(--accent);padding:2px 7px;border-radius:6px}
+.mes-q{font-size:13px;font-weight:700;opacity:.9;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.mes-q i{font-style:normal;font-size:20px;line-height:1;display:inline-block;transform:rotate(90deg);transition:transform .2s}
+.mes-h.fechado i{transform:rotate(0)}
+.mes-h.fechado{box-shadow:none;opacity:.85}
 .day-h .late{background:var(--bad);color:#fff;padding:2px 8px;border-radius:6px}
 @keyframes up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 
@@ -627,14 +637,32 @@ function renderLinha(k){
     return;
   }
   const amanha = addDias(hoje, 1);
-  let html = '', ultimo = '', i = 0;
-  for (const e of evs) {
-    if (e.data !== ultimo) {
-      ultimo = e.data;
-      const rot = e.data === hoje ? '<span class="hoje">Hoje</span>' : e.data === amanha ? 'Amanhã · ' : (u.per === 'prox' && e.data < hoje ? '<span class="late">Atrasada</span>' : '');
-      html += `<div class="day-h" id="${c.p}dia-${e.data}">${rot}${e.data===hoje ? esc(dataCurta(e.data)) : esc(dataLonga(e.data))}</div>`;
+  // Agrupa por mês: faixa fixa no topo, com contagem, que recolhe/abre com um toque
+  u.fechados ||= new Set();
+  const porMes = {}; for (const e of evs) (porMes[e.data.slice(0, 7)] ||= []).push(e);
+  const mesAtual = hoje.slice(0, 7);
+  let html = '', i = 0;
+  for (const mk of Object.keys(porMes)) {
+    const itens = porMes[mk], [a, m] = mk.split('-').map(Number);
+    const nomeMes = new Date(a, m - 1, 1).toLocaleDateString('pt-BR', { month:'long' }) + (a !== +hoje.slice(0, 4) ? ' ' + a : '');
+    const fechado = u.fechados.has(mk);
+    const qtd = c.escolar ? `${itens.filter(t => !t.feito).length} pendente${itens.filter(t => !t.feito).length === 1 ? '' : 's'}`
+                          : `${itens.length} evento${itens.length === 1 ? '' : 's'}`;
+    html += `<button class="mes-h ${mk === mesAtual ? 'atual' : ''} ${fechado ? 'fechado' : ''}" data-mk="${mk}" aria-expanded="${!fechado}">
+      <span class="mes-n">${esc(nomeMes)}${mk === mesAtual ? '<small>este mês</small>' : ''}</span>
+      <span class="mes-q">${qtd}<i>›</i></span></button><div class="mes-b" ${fechado ? 'hidden' : ''}>`;
+    let ultimo = '';
+    for (const e of itens) {
+      if (e.data !== ultimo) {
+        ultimo = e.data;
+        const [ya, ym, yd] = e.data.split('-').map(Number), dt = new Date(ya, ym - 1, yd);
+        const diaTxt = dt.toLocaleDateString('pt-BR', { weekday:'long' }) + ', ' + yd;
+        const rot = e.data === hoje ? '<span class="hoje">Hoje</span>' : e.data === amanha ? 'Amanhã · ' : (u.per === 'prox' && e.data < hoje ? '<span class="late">Atrasada</span>' : '');
+        html += `<div class="day-h" id="${c.p}dia-${e.data}">${rot}${esc(diaTxt)}</div>`;
+      }
+      html += cardItem(k, e, i++);
     }
-    html += cardItem(k, e, i++);
+    html += '</div>';
   }
   el(k, 'Lista').innerHTML = html;
 }
@@ -972,6 +1000,7 @@ for (const k of Object.keys(LT)) {
     const b = e.target.closest('[data-dia]'); if (!b) return; vibrar();
     u.dia = u.dia === b.dataset.dia ? null : b.dataset.dia; rr();
     if (!u.dia) return;
+    if (u.fechados && u.fechados.delete(u.dia.slice(0, 7))) rr();
     const alvo = document.getElementById(LT[k].p + 'dia-' + u.dia);
     if (alvo) alvo.scrollIntoView({ behavior:'smooth', block:'start' });
     else { u.per = 'mes'; u.mes = u.dia.slice(0, 7); rr(); }
@@ -985,6 +1014,14 @@ for (const k of Object.keys(LT)) {
   };
   el(k, 'Lista').onclick = async e => {
     if (e.target.closest('a')) return;
+    const mh = e.target.closest('[data-mk]');
+    if (mh) {
+      u.fechados ||= new Set(); const mk = mh.dataset.mk;
+      u.fechados.has(mk) ? u.fechados.delete(mk) : u.fechados.add(mk);
+      const corpo = mh.nextElementSibling, fechado = u.fechados.has(mk);
+      mh.classList.toggle('fechado', fechado); mh.setAttribute('aria-expanded', !fechado); corpo.hidden = fechado; vibrar();
+      return;
+    }
     const fz = e.target.closest('[data-feito]');
     if (fz) {
       const t = S.tarefas.find(x => x.id === fz.dataset.feito); if (!t) return;
