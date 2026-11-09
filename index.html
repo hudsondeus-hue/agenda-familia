@@ -587,11 +587,19 @@ $('#fmLista').onclick = async e => {
 };
 
 // ================== Início ==================
-function telaConfig(){
+async function telaConfig(){
+  $('#fab').style.display = 'none';
+  let diag = '';
+  try {
+    const d = await (await fetch('/api/status', { cache:'no-store' })).json();
+    diag = `<div style="margin-top:18px;background:var(--card);border-radius:12px;padding:12px 14px;font-size:14px">
+      <b>Diagnóstico</b><br>Banco: ${esc(d.banco)}<br>Conexão: ${esc(d.conexao)}<br>
+      Variáveis de banco vistas: ${d.variaveis_encontradas.length ? esc(d.variaveis_encontradas.join(', ')) : '<b>nenhuma</b>'}<br>
+      Ambiente: ${esc(d.ambiente)}</div>`;
+  } catch {}
   $('#main').innerHTML = `<div class="setup"><h2 style="font-family:Fraunces,serif">Quase lá! 🔧</h2>
     Falta ligar o banco de dados. Na Vercel, abra o projeto → aba <b>Storage</b> → <b>Create Database</b> →
-    <b>Neon</b> (plano Free) → conecte a este projeto. Depois vá em <b>Deployments</b> e faça <b>Redeploy</b>.</div>`;
-  $('#fab').style.display = 'none';
+    <b>Neon</b> (plano Free) → conecte a este projeto. Depois vá em <b>Deployments</b> e faça <b>Redeploy</b>.${diag}</div>`;
 }
 
 async function iniciar(){

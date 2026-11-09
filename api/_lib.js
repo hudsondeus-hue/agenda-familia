@@ -7,8 +7,25 @@ export const TABELAS = ['membros', 'eventos', 'supermercado', 'acoes'];
 // Se houver um Upstash Redis conectado em vez dele, usa o Redis.
 
 const chave = t => `af:${t}`;
-const usarRedis = () => !!(process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL) &&
-  !(process.env.DATABASE_URL || process.env.POSTGRES_URL);
+
+// Acha o endereço do banco mesmo que a Vercel tenha posto um prefixo no nome
+// (ex.: DATABASE_URL, POSTGRES_URL, STORAGE_DATABASE_URL, NEON_DATABASE_URL...)
+export function acharPostgres() {
+  const env = process.env;
+  const preferidos = ['DATABASE_URL', 'POSTGRES_URL'];
+  for (const n of preferidos) if (/^postgres(ql)?:\/\//.test(env[n] || '')) return { nome: n, url: env[n] };
+  const nomes = Object.keys(env).filter(n => /^postgres(ql)?:\/\//.test(env[n] || '') && !/UNPOOLED|NON_POOLING|NO_SSL/i.test(n))
+    .sort((a, b) => (/DATABASE_URL$/.test(b) - /DATABASE_URL$/.test(a)) || a.length - b.length);
+  return nomes.length ? { nome: nomes[0], url: env[nomes[0]] } : null;
+}
+export function acharRedis() {
+  const env = process.env;
+  const u = Object.keys(env).find(n => /(KV_REST_API_URL|REDIS_REST_URL)$/.test(n) && /^https:/.test(env[n] || ''));
+  if (!u) return null;
+  const t = u.replace(/URL$/, 'TOKEN');
+  return env[t] ? { nome: u, url: env[u], token: env[t] } : null;
+}
+const usarRedis = () => !acharPostgres() && !!acharRedis();
 
 // ----- Postgres (Neon) -----
 let _sql = null, _pronto = null;
@@ -16,8 +33,9 @@ async function pg(texto, params = []) {
   if (!_sql) {
     if (globalThis.__SQL__) _sql = globalThis.__SQL__;            // usado só nos testes
     else {
-      const url = process.env.DATABASE_URL || process.env.POSTGRES_URL;
-      if (!url) throw new Error('BANCO_NAO_CONECTADO');
+      const pgEnv = acharPostgres();
+      if (!pgEnv) throw new Error('BANCO_NAO_CONECTADO');
+      const url = pgEnv.url;
       const { neon } = await import('@neondatabase/serverless');
       const c = neon(url);
       _sql = (t, p) => c.query(t, p);
@@ -35,8 +53,9 @@ async function pg(texto, params = []) {
 
 // ----- Redis (Upstash), alternativa -----
 async function redis(...comandos) {
-  const url = (process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL).replace(/\/$/, '');
-  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+  const r0 = acharRedis();
+  if (!r0) throw new Error('BANCO_NAO_CONECTADO');
+  const url = r0.url.replace(/\/$/, ''), token = r0.token;
   const r = await fetch(`${url}/pipeline`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -56,6 +75,7 @@ function hashParaLista(arr) {
 
 // ----- Operações usadas pelo app -----
 export async function lerTudo() {
+  if (!acharPostgres() && !acharRedis()) throw new Error('BANCO_NAO_CONECTADO');
   const tudo = Object.fromEntries(TABELAS.map(t => [t, []]));
   if (usarRedis()) {
     const res = await redis(...TABELAS.map(t => ['HGETALL', chave(t)]));
