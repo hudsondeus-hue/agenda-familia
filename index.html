@@ -12,7 +12,7 @@
 <link rel="apple-touch-icon" href="/icones/apple-touch-icon.png">
 <link rel="manifest" href="/manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#f6f1e7; --card:#fffdf8; --ink:#1d2a24; --muted:#6b756f; --line:#e7dfcf;
@@ -29,7 +29,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 /* Cabeçalho */
 header{background:var(--brand);color:#fff;padding:calc(18px + env(safe-area-inset-top)) 18px 22px;border-radius:0 0 26px 26px;position:relative;overflow:hidden}
 header::after{content:"";position:absolute;right:-40px;top:-40px;width:170px;height:170px;border-radius:50%;background:rgba(255,255,255,.06)}
-header h1{font-family:Fraunces,serif;font-weight:700;font-size:26px;margin:0;letter-spacing:-.3px}
+header h1{font-family:Montserrat,system-ui,sans-serif;font-weight:800;font-size:clamp(18px,5.4vw,26px);margin:0;letter-spacing:.6px;text-transform:uppercase;line-height:1.15}
 header .sub{opacity:.8;font-size:14px;margin-top:4px}
 header .sub::first-letter{text-transform:uppercase}
 header .tab-title{font-size:13px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#f4c9b3;margin-bottom:6px}
@@ -141,7 +141,7 @@ textarea{min-height:80px;resize:vertical}
 .overlay.on{display:flex;animation:fade .15s}
 .sheet{background:var(--bg);width:100%;max-width:640px;max-height:92vh;overflow:auto;border-radius:22px 22px 0 0;padding:10px 18px calc(22px + env(safe-area-inset-bottom))}
 .sheet .grab{width:44px;height:5px;border-radius:9px;background:#d6cdb9;margin:4px auto 12px}
-.sheet h2{font-family:Fraunces,serif;margin:0 0 4px;font-size:22px}
+.sheet h2{font-family:Montserrat,system-ui,sans-serif;font-weight:700;margin:0 0 4px;font-size:22px}
 
 /* Navegação */
 nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom);z-index:40}
@@ -169,7 +169,7 @@ header h1,header .sub{position:relative;z-index:1}
 .stat{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:10px 10px 9px;color:#fff;text-align:left;cursor:pointer;transition:transform .15s,background .15s}
 .stat:active{transform:scale(.96)}
 .stat:hover{background:rgba(255,255,255,.16)}
-.stat b{display:block;font-family:Fraunces,serif;font-size:24px;line-height:1}
+.stat b{display:block;font-family:Montserrat,system-ui,sans-serif;font-weight:700;font-size:24px;line-height:1}
 .stat small{display:block;font-size:11.5px;opacity:.85;margin-top:4px;font-weight:700}
 .stat.alert b{color:#ffb59a}
 
@@ -189,7 +189,7 @@ header h1,header .sub{position:relative;z-index:1}
 /* Mês */
 .cal{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:12px;margin-bottom:12px}
 .cal-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.cal-h b{font-family:Fraunces,serif;font-size:18px}
+.cal-h b{font-family:Montserrat,system-ui,sans-serif;font-weight:700;font-size:18px}
 .cal-h b::first-letter{text-transform:uppercase}
 .cal-h button{border:0;background:var(--chip);width:34px;height:34px;border-radius:10px;font-size:18px;cursor:pointer}
 .cal-g{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center}
@@ -242,7 +242,7 @@ body.quieto .anim{animation:none}
 .resumo{display:flex;align-items:center;gap:16px;background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:14px;margin-bottom:12px}
 .ring{width:66px;height:66px;flex:none;position:relative}
 .ring svg{transform:rotate(-90deg)}
-.ring b{position:absolute;inset:0;display:grid;place-items:center;font-family:Fraunces,serif;font-size:17px}
+.ring b{position:absolute;inset:0;display:grid;place-items:center;font-family:Montserrat,system-ui,sans-serif;font-weight:700;font-size:17px}
 .resumo .k{display:flex;flex-direction:column;gap:4px;font-size:14px;font-weight:700}
 .resumo .k span{display:flex;align-items:center;gap:7px}
 .card.ac{border-left:5px solid var(--bar,var(--line))}
@@ -1074,7 +1074,7 @@ async function telaConfig(){
       Variáveis de banco vistas: ${d.variaveis_encontradas.length ? esc(d.variaveis_encontradas.join(', ')) : '<b>nenhuma</b>'}<br>
       Ambiente: ${esc(d.ambiente)}</div>`;
   } catch {}
-  $('#main').innerHTML = `<div class="setup"><h2 style="font-family:Fraunces,serif">Quase lá! 🔧</h2>
+  $('#main').innerHTML = `<div class="setup"><h2 style="font-family:Montserrat,system-ui,sans-serif;font-weight:700">Quase lá! 🔧</h2>
     Falta ligar o banco de dados. Na Vercel, abra o projeto → aba <b>Storage</b> → <b>Create Database</b> →
     <b>Neon</b> (plano Free) → conecte a este projeto. Depois vá em <b>Deployments</b> e faça <b>Redeploy</b>.${diag}</div>`;
 }
