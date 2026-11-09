@@ -228,6 +228,8 @@ body.quieto .anim{animation:none}
 .mes-q i{font-style:normal;font-size:20px;line-height:1;display:inline-block;transform:rotate(90deg);transition:transform .2s}
 .mes-h.fechado i{transform:rotate(0)}
 .mes-h.fechado{box-shadow:none;opacity:.85}
+.mes-h.alerta{background:var(--bad);box-shadow:0 4px 14px rgba(192,57,43,.2)}
+.mes-h.neutro{background:#7b847f;box-shadow:none}
 .day-h .late{background:var(--bad);color:#fff;padding:2px 8px;border-radius:6px}
 @keyframes up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 
@@ -868,27 +870,44 @@ function renderAcoes(){
   if (UI.acF === 'concluidas') lst = lst.filter(a => a.status === 'Concluída');
   if (!lst.length) { $('#acLista').innerHTML = `<div class="empty"><div class="ic">${UI.acF==='abertas' && base.length ? '🏆' : '📝'}</div>${UI.acF==='abertas' && base.length ? 'Tudo em dia!' : 'Nenhuma ação aqui.<br>Toque no <b>+</b> para planejar algo.'}</div>`; return; }
 
-  const grupo = a => a.status === 'Concluída' ? 'Concluídas' : !a.prazo ? 'Sem prazo' : a.prazo < hoje ? 'Atrasadas' : a.prazo <= em7 ? 'Esta semana' : 'Mais adiante';
-  const ordem = ['Atrasadas','Esta semana','Mais adiante','Sem prazo','Concluídas'];
-  const corG = { 'Atrasadas':'var(--bad)', 'Esta semana':'var(--warn)', 'Mais adiante':'var(--brand-2)', 'Sem prazo':'var(--line)', 'Concluídas':'var(--ok)' };
+  // Faixas: Atrasadas (topo) → um mês por prazo → Sem prazo
+  const corCard = a => a.status === 'Concluída' ? 'var(--ok)' : !a.prazo ? 'var(--line)' : a.prazo < hoje ? 'var(--bad)' : a.prazo <= em7 ? 'var(--warn)' : 'var(--brand-2)';
+  const chave = a => !a.prazo ? 'sem' : (a.status !== 'Concluída' && a.prazo < hoje) ? 'atr' : a.prazo.slice(0, 7);
+  const grupos = {}; for (const a of lst) (grupos[chave(a)] ||= []).push(a);
+  const meses = Object.keys(grupos).filter(x => x !== 'atr' && x !== 'sem').sort();
+  if (UI.acF === 'concluidas') meses.reverse();
+  const ordem = (grupos.atr ? ['atr'] : []).concat(meses, grupos.sem ? ['sem'] : []);
+  UI.acFechados ||= new Set();
+  const mesAtual = hoje.slice(0, 7), anoAtual = +hoje.slice(0, 4);
   let html = '', k = 0;
   for (const g of ordem) {
-    const itens = lst.filter(a => grupo(a) === g); if (!itens.length) continue;
-    html += `<div class="day-h"><span class="dot" style="background:${corG[g]}"></span>${g} · ${itens.length}</div>`;
+    const itens = grupos[g], fechado = UI.acFechados.has(g);
+    let titulo, extra = '', cls = '';
+    if (g === 'atr') { titulo = 'Atrasadas'; cls = 'alerta'; }
+    else if (g === 'sem') { titulo = 'Sem prazo'; cls = 'neutro'; }
+    else {
+      const [a, m] = g.split('-').map(Number);
+      titulo = new Date(a, m - 1, 1).toLocaleDateString('pt-BR', { month:'long' }) + (a !== anoAtual ? ' ' + a : '');
+      if (g === mesAtual) { extra = '<small>este mês</small>'; cls = 'atual'; }
+    }
+    const abertas = itens.filter(a => a.status !== 'Concluída').length;
+    const qtd = UI.acF === 'concluidas' ? `${itens.length} concluída${itens.length === 1 ? '' : 's'}` : `${abertas || itens.length} aç${(abertas || itens.length) === 1 ? 'ão' : 'ões'}`;
+    html += `<button class="mes-h ${cls} ${fechado ? 'fechado' : ''}" data-mk="${g}" aria-expanded="${!fechado}">
+      <span class="mes-n">${esc(titulo)}${extra}</span><span class="mes-q">${qtd}<i>›</i></span></button><div class="mes-b" ${fechado ? 'hidden' : ''}>`;
     html += itens.map(a => {
       let prazo = '';
       if (a.prazo) {
-        const cls = a.status === 'Concluída' ? 'ok' : a.prazo < hoje ? 'late' : a.prazo <= em7 ? 'soon' : 'ok';
-        const txt = a.status !== 'Concluída' && a.prazo < hoje ? 'Atrasada · ' : a.prazo === hoje ? 'Vence hoje · ' : '';
-        prazo = `<span class="prazo ${cls}">📆 ${txt}${esc(dataCurta(a.prazo))}</span>`;
+        const pc = a.status === 'Concluída' ? 'ok' : a.prazo < hoje ? 'late' : a.prazo <= em7 ? 'soon' : 'ok';
+        const txt = a.status !== 'Concluída' && a.prazo < hoje ? 'Atrasada · ' : a.prazo === hoje ? 'Vence hoje · ' : a.status !== 'Concluída' && a.prazo <= em7 ? 'Esta semana · ' : '';
+        prazo = `<span class="prazo ${pc}">📆 ${txt}${esc(dataCurta(a.prazo))}</span>`;
       }
       const stCls = 'st-' + (a.status || 'Pendente').split(' ')[0];
-      return `<div class="card ac anim ${a.status==='Concluída'?'done':''}" data-ac="${a.id}" style="--bar:${corG[g]};animation-delay:${Math.min(k++, 8) * 40}ms">
+      return `<div class="card ac anim ${a.status==='Concluída'?'done':''}" data-ac="${a.id}" style="--bar:${corCard(a)};animation-delay:${Math.min(k++, 8) * 40}ms">
         <div class="body"><div class="t">${esc(a.nome)}</div>${a.descricao ? `<div class="d">${esc(a.descricao)}</div>` : ''}
           <div class="who">${a.responsavel ? tagMembro(a.responsavel) : ''}${prazo}</div></div>
         <button class="pill ${stCls}" data-st="${a.id}">${esc(a.status || 'Pendente')}</button>
       </div>`;
-    }).join('');
+    }).join('') + '</div>';
   }
   $('#acLista').innerHTML = html;
 }
@@ -1074,6 +1093,13 @@ $('#mkShare').onclick = () => {
 $('#acFiltro').onclick = e => { const b = e.target.closest('[data-f]'); if (!b) return; document.body.classList.remove('quieto'); UI.acF = b.dataset.f; $('#acFiltro').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); renderAcoes(); };
 $('#acQuem').onclick = e => { const b = e.target.closest('[data-q]'); if (b) { document.body.classList.remove('quieto'); UI.acQuem = b.dataset.q; renderAcoes(); } };
 $('#acLista').onclick = async e => {
+  const mh = e.target.closest('[data-mk]');
+  if (mh) {
+    UI.acFechados ||= new Set(); const g = mh.dataset.mk;
+    UI.acFechados.has(g) ? UI.acFechados.delete(g) : UI.acFechados.add(g);
+    const f = UI.acFechados.has(g); mh.classList.toggle('fechado', f); mh.setAttribute('aria-expanded', !f); mh.nextElementSibling.hidden = f; vibrar();
+    return;
+  }
   const st = e.target.closest('[data-st]');
   if (st) {
     const a = S.acoes.find(x => x.id === st.dataset.st);
