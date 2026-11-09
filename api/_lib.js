@@ -119,7 +119,8 @@ export function hojeBR() {
 
 export function limparTelefone(t) {
   let d = String(t || '').replace(/\D/g, '').replace(/^0+/, '');
-  if (d.length === 10 || d.length === 11) d = '55' + d;   // número brasileiro sem o 55
+  const temDDI = String(t || '').trim().startsWith('+');
+  if (!temDDI && (d.length === 10 || d.length === 11)) d = '55' + d;   // número brasileiro sem o 55
   return d ? '+' + d : '';
 }
 
