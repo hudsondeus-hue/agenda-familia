@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2f6b57"/><stop offset="1" stop-color="#1f4d3f"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <!-- folha do calendário -->
+  <rect x="96" y="118" width="320" height="300" rx="36" fill="#000" opacity=".18" transform="translate(0 10)"/>
+  <rect x="96" y="118" width="320" height="300" rx="36" fill="#fffdf8"/>
+  <path d="M96 154a36 36 0 0 1 36-36h248a36 36 0 0 1 36 36v40H96z" fill="#d9774a"/>
+  <!-- argolas -->
+  <rect x="166" y="88" width="26" height="66" rx="13" fill="#f6f1e7" stroke="#1f4d3f" stroke-width="8"/>
+  <rect x="320" y="88" width="26" height="66" rx="13" fill="#f6f1e7" stroke="#1f4d3f" stroke-width="8"/>
+  <!-- dias -->
+  <g fill="#e7dfcf">
+    <rect x="136" y="226" width="54" height="46" rx="10"/><rect x="206" y="226" width="54" height="46" rx="10"/>
+    <rect x="276" y="226" width="54" height="46" rx="10"/><rect x="346" y="226" width="34" height="46" rx="10"/>
+    <rect x="136" y="288" width="54" height="46" rx="10"/><rect x="276" y="288" width="54" height="46" rx="10"/>
+    <rect x="346" y="288" width="34" height="46" rx="10"/>
+    <rect x="136" y="350" width="54" height="40" rx="10"/><rect x="206" y="350" width="54" height="40" rx="10"/>
+    <rect x="276" y="350" width="54" height="40" rx="10"/>
+  </g>
+  <!-- dia em destaque com coração (família) -->
+  <rect x="206" y="288" width="54" height="46" rx="10" fill="#1f4d3f"/>
+  <path d="M233 324c-9-7-17-13-17-21a8.5 8.5 0 0 1 17-2 8.5 8.5 0 0 1 17 2c0 8-8 14-17 21z" fill="#f4a582"/>
+  <!-- pontinhos coloridos (pessoas da família) -->
+  <circle cx="163" cy="262" r="5" fill="#3b82f6"/><circle cx="303" cy="262" r="5" fill="#a855f7"/><circle cx="163" cy="324" r="5" fill="#d9774a"/>
+</svg>
