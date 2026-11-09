@@ -1,6 +1,6 @@
 // Funções compartilhadas pelas rotas da API (arquivos com "_" não viram rota na Vercel)
 
-export const TABELAS = ['membros', 'eventos', 'supermercado', 'acoes'];
+export const TABELAS = ['membros', 'eventos', 'tarefas', 'supermercado', 'acoes'];
 
 // ---------- Banco de dados ----------
 // Usa Neon Postgres (Vercel → Storage → Neon, plano Free).

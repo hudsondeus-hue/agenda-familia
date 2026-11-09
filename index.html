@@ -209,6 +209,13 @@ header h1,header .sub{position:relative;z-index:1}
 .card.past{opacity:.72}
 .anim{animation:up .35s cubic-bezier(.2,.8,.2,1) both}
 body.quieto .anim{animation:none}
+.rel.late{background:#fde2de;color:var(--bad)}
+.rel.ok{background:#d9f0e2;color:#1d6b40}
+.card.ev .check{align-self:center;margin-left:4px}
+.card.feito .t{text-decoration:line-through;color:var(--muted)}
+.card.feito{opacity:.7}
+.mat{font-size:12px;font-weight:800;padding:3px 9px;border-radius:999px;background:#e8e3f7;color:#5b3fa3}
+.day-h .late{background:var(--bad);color:#fff;padding:2px 8px;border-radius:6px}
 @keyframes up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 
 /* Mercado */
@@ -275,6 +282,19 @@ nav button.on::before{content:"";position:absolute;top:0;left:30%;right:30%;heig
       <div id="agLista"></div>
     </section>
 
+    <!-- TAREFAS ESCOLARES -->
+    <section id="s-escola">
+      <div class="chips" id="tfFiltro"></div>
+      <div class="seg" id="tfPeriodo">
+        <button data-p="prox" class="on">📋 Próximas</button>
+        <button data-p="mes">🗓️ Mês</button>
+        <button data-p="pass">⏪ Passadas</button>
+      </div>
+      <div class="week" id="tfSemana"></div>
+      <div id="tfCal"></div>
+      <div id="tfLista"></div>
+    </section>
+
     <!-- SUPERMERCADO -->
     <section id="s-mercado">
       <form class="quick" id="mkForm">
@@ -318,7 +338,7 @@ nav button.on::before{content:"";position:absolute;top:0;left:30%;right:30%;heig
           <li>O bot responde com a sua <b>APIKEY</b>. Cadastre-a aqui no seu nome, junto com seu número (com 55 e DDD).</li>
           <li>Toque em <b>Testar</b> para conferir.</li>
         </ol>
-        Os avisos chegam todo dia por volta das 8h, com os eventos do dia.
+        Os avisos chegam todo dia entre 6h e 7h da manhã, com os eventos do dia e as tarefas escolares de hoje e amanhã.
       </div>
     </section>
   </main>
@@ -328,8 +348,9 @@ nav button.on::before{content:"";position:absolute;top:0;left:30%;right:30%;heig
 
 <nav><div class="in">
   <button data-tab="agenda" class="on"><span class="i">📅</span>Agenda</button>
-  <button data-tab="mercado"><span class="i">🛒</span>Supermercado<span class="badge" id="mkBadge" style="display:none"></span></button>
-  <button data-tab="acoes"><span class="i">✅</span>Ações Futuras</button>
+  <button data-tab="escola"><span class="i">🎒</span>Escola<span class="badge" id="tfBadge" style="display:none"></span></button>
+  <button data-tab="mercado"><span class="i">🛒</span>Mercado<span class="badge" id="mkBadge" style="display:none"></span></button>
+  <button data-tab="acoes"><span class="i">✅</span>Ações</button>
   <button data-tab="familia"><span class="i">👨‍👩‍👧‍👦</span>Família</button>
 </div></nav>
 
@@ -338,10 +359,10 @@ nav button.on::before{content:"";position:absolute;top:0;left:30%;right:30%;heig
 
 <script>
 // ================== Estado e utilidades ==================
-const S = { membros: [], eventos: [], mercado: [], acoes: [] };
-const UI = { tab: 'agenda', agQuem: 'todos', agPer: 'prox', acF: 'abertas', acQuem: 'todos', dia: null, mes: null };
+const S = { membros: [], eventos: [], tarefas: [], mercado: [], acoes: [] };
+const UI = { tab: 'agenda', acF: 'abertas', acQuem: 'todos' };
 const CORES = ['#1f4d3f','#d9774a','#3b82f6','#a855f7','#e11d48','#0d9488','#ca8a04','#475569'];
-const TITULOS = { agenda:'Agenda', mercado:'Compra da semana', acoes:'Ações Futuras', familia:'Família' };
+const TITULOS = { agenda:'Agenda', escola:'Tarefas escolares', mercado:'Compra da semana', acoes:'Ações Futuras', familia:'Família' };
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -382,6 +403,13 @@ const ICONES_MK = [
   [/shampoo|sabonete|creme dental|pasta de dente|desodorante|escova/i,'🪥'],[/cerveja|vinho|refri|suco|[aá]gua/i,'🥤'],
   [/chocolate|biscoito|bolacha|doce|sorvete|bolo/i,'🍫'],[/[oó]leo|azeite|vinagre|molho|tempero|ketchup|maionese/i,'🫒'],
   [/ra[çc][aã]o|pet/i,'🐾'],[/fralda|len[çc]o/i,'👶']
+];
+const ICONES_MAT = [
+  [/matem[aá]t|c[aá]lculo|tabuada/i,'🔢'],[/portugu[eê]s|reda[çc][aã]o|gram[aá]tica|literatura|leitura|livro/i,'✍️'],
+  [/ci[eê]ncia|biologia/i,'🔬'],[/qu[ií]mica/i,'🧪'],[/f[ií]sica(?! *educ)/i,'🧲'],[/hist[oó]ria/i,'🏛️'],[/geografia|mapa/i,'🌎'],
+  [/ingl[eê]s|espanhol|franc[eê]s|idioma/i,'🗣️'],[/arte|desenho|pintura/i,'🎨'],[/educa[çc][aã]o f[ií]sica|ed\.? *f[ií]s/i,'⚽'],
+  [/m[uú]sica/i,'🎵'],[/religi|ensino religioso/i,'⛪'],[/inform[aá]tica|rob[oó]tica|programa/i,'💻'],[/filosofia|sociologia/i,'💭'],
+  [/prova|teste|simulado/i,'📝'],[/trabalho|maquete|projeto|feira/i,'🧩']
 ];
 const iconeDe = (lista, t, padrao) => (lista.find(([r]) => r.test(t || '')) || [0, padrao])[1];
 const vibrar = (ms = 12) => { try { navigator.vibrate && navigator.vibrate(ms); } catch {} };
@@ -477,6 +505,7 @@ async function carregar(forcar){
     const porTexto = k => (x, y) => String(x[k] ?? '').localeCompare(String(y[k] ?? ''), 'pt-BR');
     S.membros = j.membros.sort(porTexto('nome'));
     S.eventos = j.eventos.sort((x, y) => x.data.localeCompare(y.data) || (x.hora || '').localeCompare(y.hora || ''));
+    S.tarefas = (j.tarefas || []).sort((x, y) => x.data.localeCompare(y.data) || (x.hora || '').localeCompare(y.hora || ''));
     S.mercado = j.supermercado.sort(porTexto('created_at'));
     S.acoes = j.acoes.sort((x, y) => (x.prazo || '9999').localeCompare(y.prazo || '9999'));
     render();
@@ -486,76 +515,112 @@ async function carregar(forcar){
 }
 
 function render(){
-  renderHeader(); renderAgenda(); renderMercado(); renderAcoes(); renderFamilia();
+  renderHeader(); renderLinha('agenda'); renderLinha('escola'); renderMercado(); renderAcoes(); renderFamilia();
 }
 
 // ================== Agenda ==================
-function eventosFiltrados(){
-  if (UI.agQuem === 'familia') return S.eventos.filter(e => !e.membros || !e.membros.length);
-  if (UI.agQuem !== 'todos') return S.eventos.filter(e => !e.membros || !e.membros.length || e.membros.includes(UI.agQuem));
-  return S.eventos;
+// ---------- Linha do tempo (usada pela Agenda e pelas Tarefas escolares) ----------
+const LT = {
+  agenda: { tabela:'eventos', p:'ag', u:{ quem:'todos', per:'prox', dia:null, mes:null },
+    novo:'Novo evento', editar:'Editar evento', salvo:'Evento salvo', excluido:'Evento excluído', excluir:'Excluir este evento?',
+    ph:'Ex.: Dentista da Ana', phDesc:'Endereço, o que levar, observações...', dataLbl:'Data', quemLbl:'De quem é o evento?',
+    vazio:'Nenhum evento por vir.', vazioPass:'Nenhum evento passado.', emptyIc:'🗓️', icones:() => ICONES_EV, ico:'📌', semPessoa:'🏡 Família toda' },
+  escola: { tabela:'tarefas', p:'tf', u:{ quem:'todos', per:'prox', dia:null, mes:null }, escolar:true,
+    novo:'Nova tarefa escolar', editar:'Editar tarefa', salvo:'Tarefa salva', excluido:'Tarefa excluída', excluir:'Excluir esta tarefa?',
+    ph:'Ex.: Exercícios das páginas 40 a 42', phDesc:'O que fazer, material, observações...', dataLbl:'Entrega', quemLbl:'De quem é a tarefa?',
+    vazio:'Nenhuma tarefa para entregar.', vazioPass:'Nenhuma tarefa antiga.', emptyIc:'🎒', icones:() => ICONES_MAT, ico:'📚', semPessoa:'👥 Sem aluno definido' }
+};
+const el = (k, id) => document.getElementById(LT[k].p + id);
+
+function itensFiltrados(k){
+  const lista = S[LT[k].tabela], q = LT[k].u.quem;
+  if (q === 'familia') return lista.filter(e => !e.membros || !e.membros.length);
+  if (q !== 'todos') return lista.filter(e => !e.membros || !e.membros.length || e.membros.includes(q));
+  return lista;
 }
 function pontos(evs, max = 3){
   const cores = [...new Set(evs.map(corEvento))].slice(0, max);
   return `<span class="dots">${cores.map(c => `<i style="background:${c}"></i>`).join('')}</span>`;
 }
-function cardEvento(e, i){
-  const quem = e.membros && e.membros.length ? e.membros.map(tagMembro).join('') : '<span class="tag">🏡 Família toda</span>';
-  return `<div class="card ev anim ${e.data < hojeISO() ? 'past' : ''}" data-ev="${e.id}" style="--bar:${corEvento(e)};animation-delay:${Math.min(i, 8) * 40}ms">
-    <div class="ev-time"><div class="ev-ico">${iconeDe(ICONES_EV, e.nome + ' ' + (e.descricao || ''), '📌')}</div>${e.hora ? esc(e.hora.slice(0,5)) : '<small>DIA TODO</small>'}</div>
-    <div class="body"><div class="t">${esc(e.nome)}${relativo(e)}</div>${e.descricao ? `<div class="d">${esc(e.descricao)}</div>` : ''}<div class="who">${quem}</div>${anexosLinks(e)}</div>
+function relTarefa(t){
+  if (t.feito) return '<span class="rel ok">feita ✓</span>';
+  const hoje = hojeISO();
+  if (t.data < hoje) return '<span class="rel late">atrasada</span>';
+  if (t.data === hoje) return '<span class="rel now">entrega hoje</span>';
+  if (t.data === addDias(hoje, 1)) return '<span class="rel">entrega amanhã</span>';
+  const [a,m,d] = t.data.split('-').map(Number), [ha,hm,hd] = hoje.split('-').map(Number);
+  return `<span class="rel">em ${Math.round((new Date(a,m-1,d) - new Date(ha,hm-1,hd)) / 864e5)} dias</span>`;
+}
+function cardItem(k, e, i){
+  const c = LT[k];
+  const quem = e.membros && e.membros.length ? e.membros.map(tagMembro).join('') : (c.escolar ? '' : `<span class="tag">${c.semPessoa}</span>`);
+  const icone = iconeDe(c.icones(), (e.materia || '') + ' ' + e.nome + ' ' + (e.descricao || ''), c.ico);
+  const passado = e.data < hojeISO() && !(c.escolar && !e.feito);
+  return `<div class="card ev anim ${passado ? 'past' : ''} ${c.escolar && e.feito ? 'feito' : ''}" data-it="${e.id}" style="--bar:${c.escolar && !e.feito && e.data < hojeISO() ? 'var(--bad)' : corEvento(e)};animation-delay:${Math.min(i, 8) * 40}ms">
+    <div class="ev-time"><div class="ev-ico">${icone}</div>${e.hora ? esc(e.hora.slice(0,5)) : (c.escolar ? '<small>ENTREGA</small>' : '<small>DIA TODO</small>')}</div>
+    <div class="body"><div class="t">${esc(e.nome)}${c.escolar ? relTarefa(e) : relativo(e)}</div>${e.descricao ? `<div class="d">${esc(e.descricao)}</div>` : ''}
+      <div class="who">${c.escolar && e.materia ? `<span class="mat">${esc(e.materia)}</span>` : ''}${quem}</div>${anexosLinks(e)}</div>
+    ${c.escolar ? `<button class="check ${e.feito ? 'on' : ''}" data-feito="${e.id}" aria-label="Marcar como feita"></button>` : ''}
   </div>`;
 }
 
-function renderAgenda(){
-  const chips = [`<button class="chip ${UI.agQuem==='todos'?'on':''}" data-q="todos">Todos</button>`,
-                 `<button class="chip ${UI.agQuem==='familia'?'on':''}" data-q="familia">🏡 Família toda</button>`]
-    .concat(S.membros.map(m => `<button class="chip ${UI.agQuem===m.id?'on':''}" data-q="${m.id}"><span class="dot" style="background:${esc(m.cor)}"></span>${esc(m.nome)}</button>`));
-  $('#agFiltro').innerHTML = chips.join('');
-  $('#agPeriodo').querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.p === UI.agPer));
+function renderLinha(k){
+  const c = LT[k], u = c.u;
+  const chips = [`<button class="chip ${u.quem==='todos'?'on':''}" data-q="todos">Todos</button>`]
+    .concat(c.escolar ? [] : [`<button class="chip ${u.quem==='familia'?'on':''}" data-q="familia">🏡 Família toda</button>`])
+    .concat(S.membros.map(m => `<button class="chip ${u.quem===m.id?'on':''}" data-q="${m.id}"><span class="dot" style="background:${esc(m.cor)}"></span>${esc(m.nome)}</button>`));
+  el(k, 'Filtro').innerHTML = chips.join('');
+  el(k, 'Periodo').querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.p === u.per));
 
-  const hoje = hojeISO(), todos = eventosFiltrados();
+  const hoje = hojeISO(), todos = itensFiltrados(k);
   const porDia = {}; for (const e of todos) (porDia[e.data] ||= []).push(e);
+  const pendentesDia = d => (porDia[d] || []).filter(e => !(c.escolar && e.feito));
+
+  if (k === 'escola') {
+    const abertas = S.tarefas.filter(t => !t.feito && t.data <= addDias(hoje, 1)).length;
+    const b = $('#tfBadge'); b.style.display = abertas ? '' : 'none'; b.textContent = abertas;
+  }
 
   // Faixa dos próximos 14 dias
-  $('#agSemana').style.display = UI.agPer === 'prox' ? '' : 'none';
-  if (UI.agPer === 'prox') {
+  el(k, 'Semana').style.display = u.per === 'prox' ? '' : 'none';
+  if (u.per === 'prox') {
     let w = '';
     for (let i = 0; i < 14; i++) {
       const d = addDias(hoje, i), [a,m,dd] = d.split('-').map(Number), dt = new Date(a, m-1, dd);
-      w += `<button class="wd ${i===0?'today':''} ${UI.dia===d?'sel':''}" data-dia="${d}">
-        <small>${i===0 ? 'hoje' : dt.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','')}</small><b>${dd}</b>${pontos(porDia[d] || [])}</button>`;
+      w += `<button class="wd ${i===0?'today':''} ${u.dia===d?'sel':''}" data-dia="${d}">
+        <small>${i===0 ? 'hoje' : dt.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','')}</small><b>${dd}</b>${pontos(pendentesDia(d))}</button>`;
     }
-    $('#agSemana').innerHTML = w;
+    el(k, 'Semana').innerHTML = w;
   }
 
   // Calendário do mês
-  if (UI.agPer === 'mes') {
-    const base = UI.mes || hoje.slice(0, 7);
+  if (u.per === 'mes') {
+    const base = u.mes || hoje.slice(0, 7);
     const [a, m] = base.split('-').map(Number);
     const primeiro = new Date(a, m-1, 1), inicio = new Date(a, m-1, 1 - primeiro.getDay());
-    const sel = UI.dia || hoje;
+    const sel = u.dia || hoje;
     let g = ['D','S','T','Q','Q','S','S'].map(x => `<div class="dn">${x}</div>`).join('');
     for (let i = 0; i < 42; i++) {
       const dt = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate() + i);
       const d = dt.toLocaleDateString('en-CA');
       if (i >= 35 && dt.getMonth() !== m-1) break;
-      g += `<button data-dia="${d}" class="${dt.getMonth()!==m-1?'out':''} ${d===hoje?'today':''} ${d===sel?'sel':''}">${dt.getDate()}${pontos(porDia[d] || [])}</button>`;
+      g += `<button data-dia="${d}" class="${dt.getMonth()!==m-1?'out':''} ${d===hoje?'today':''} ${d===sel?'sel':''}">${dt.getDate()}${pontos(pendentesDia(d))}</button>`;
     }
-    $('#agCal').innerHTML = `<div class="cal anim"><div class="cal-h"><button data-mes="-1" aria-label="Mês anterior">‹</button>
+    el(k, 'Cal').innerHTML = `<div class="cal anim"><div class="cal-h"><button data-mes="-1" aria-label="Mês anterior">‹</button>
       <b>${primeiro.toLocaleDateString('pt-BR',{month:'long', year:'numeric'})}</b><button data-mes="1" aria-label="Próximo mês">›</button></div>
       <div class="cal-g">${g}</div></div>`;
     const evs = porDia[sel] || [];
-    $('#agLista').innerHTML = `<div class="day-h">${sel===hoje ? '<span class="hoje">Hoje</span>' : ''}${esc(dataLonga(sel))}</div>` +
-      (evs.length ? evs.map(cardEvento).join('') : `<div class="empty" style="padding:24px">Nada marcado neste dia.<br>Toque no <b>+</b> para adicionar.</div>`);
+    el(k, 'Lista').innerHTML = `<div class="day-h">${sel===hoje ? '<span class="hoje">Hoje</span>' : ''}${esc(dataLonga(sel))}</div>` +
+      (evs.length ? evs.map((e, i) => cardItem(k, e, i)).join('') : `<div class="empty" style="padding:24px">Nada marcado neste dia.<br>Toque no <b>+</b> para adicionar.</div>`);
     return;
   }
-  $('#agCal').innerHTML = '';
+  el(k, 'Cal').innerHTML = '';
 
-  let evs = todos.filter(e => UI.agPer === 'prox' ? e.data >= hoje : e.data < hoje);
-  if (UI.agPer === 'pass') evs = evs.slice().reverse();
+  // Próximos: inclui tarefas atrasadas que ainda não foram feitas
+  let evs = todos.filter(e => u.per === 'prox' ? (e.data >= hoje || (c.escolar && !e.feito)) : e.data < hoje);
+  if (u.per === 'pass') evs = evs.slice().reverse();
   if (!evs.length) {
-    $('#agLista').innerHTML = `<div class="empty"><div class="ic">🗓️</div>${UI.agPer==='prox' ? 'Nenhum evento por vir.<br>Toque no <b>+</b> para adicionar.' : 'Nenhum evento passado.'}</div>`;
+    el(k, 'Lista').innerHTML = `<div class="empty"><div class="ic">${c.emptyIc}</div>${u.per==='prox' ? c.vazio + '<br>Toque no <b>+</b> para adicionar.' : c.vazioPass}</div>`;
     return;
   }
   const amanha = addDias(hoje, 1);
@@ -563,12 +628,12 @@ function renderAgenda(){
   for (const e of evs) {
     if (e.data !== ultimo) {
       ultimo = e.data;
-      const rot = e.data === hoje ? '<span class="hoje">Hoje</span>' : e.data === amanha ? 'Amanhã · ' : '';
-      html += `<div class="day-h" id="dia-${e.data}">${rot}${e.data===hoje ? esc(dataCurta(e.data)) : esc(dataLonga(e.data))}</div>`;
+      const rot = e.data === hoje ? '<span class="hoje">Hoje</span>' : e.data === amanha ? 'Amanhã · ' : (u.per === 'prox' && e.data < hoje ? '<span class="late">Atrasada</span>' : '');
+      html += `<div class="day-h" id="${c.p}dia-${e.data}">${rot}${e.data===hoje ? esc(dataCurta(e.data)) : esc(dataLonga(e.data))}</div>`;
     }
-    html += cardEvento(e, i++);
+    html += cardItem(k, e, i++);
   }
-  $('#agLista').innerHTML = html;
+  el(k, 'Lista').innerHTML = html;
 }
 
 function linkAnexo(a){ return `/api/arquivo?id=${a.id}&nome=${encodeURIComponent(a.nome)}&tipo=${encodeURIComponent(a.tipo)}`; }
@@ -599,29 +664,34 @@ async function prepararArquivo(file){
   if (blob.size > LIMITE_ANEXO) throw new Error(`"${file.name}" tem mais de 3 MB`);
   return { nome, tipo, tamanho: blob.size, base64: await lerComoBase64(blob) };
 }
-async function enviarAnexo(eventoId, arq){
+async function enviarAnexo(eventoId, arq, tabela = 'eventos'){
   const r = await fetch('/api/arquivo', { method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ evento_id: eventoId, nome: arq.nome, tipo: arq.tipo, base64: arq.base64 }) });
+    body: JSON.stringify({ evento_id: eventoId, tabela, nome: arq.nome, tipo: arq.tipo, base64: arq.base64 }) });
   if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.erro || 'falha ao enviar ' + arq.nome); }
 }
 
-function formEvento(e, dataPadrao){
-  const sel = new Set(e?.membros || []);
+function formItem(k, e, dataPadrao){
+  const c = LT[k];
+  const sel = new Set(e?.membros || (c.escolar && !e && c.u.quem !== 'todos' ? [c.u.quem] : []));
+  const materias = [...new Set(S.tarefas.map(t => t.materia).filter(Boolean))].sort();
   abrir(`
-    <h2>${e ? 'Editar evento' : 'Novo evento'}</h2>
+    <h2>${e ? c.editar : c.novo}</h2>
     <form id="fEv">
-      <label>Nome</label><input name="nome" required value="${esc(e?.nome)}" placeholder="Ex.: Dentista da Ana">
+      ${c.escolar ? `<label>Matéria</label><input name="materia" list="listaMat" value="${esc(e?.materia)}" placeholder="Ex.: Matemática" autocomplete="off">
+      <datalist id="listaMat">${['Matemática','Português','Ciências','História','Geografia','Inglês','Artes','Educação Física'].concat(materias).filter((x,i,a)=>a.indexOf(x)===i).map(x => `<option value="${esc(x)}">`).join('')}</datalist>` : ''}
+      <label>${c.escolar ? 'Tarefa' : 'Nome'}</label><input name="nome" required value="${esc(e?.nome)}" placeholder="${c.ph}">
       <div class="grid2">
-        <div><label>Data</label><input type="date" name="data" required value="${esc(e?.data || dataPadrao || hojeISO())}"></div>
+        <div><label>${c.dataLbl}</label><input type="date" name="data" required value="${esc(e?.data || dataPadrao || hojeISO())}"></div>
         <div><label>Hora</label><input type="time" name="hora" value="${esc(e?.hora ? e.hora.slice(0,5) : '')}"></div>
       </div>
-      <label>Descrição</label><textarea name="descricao" placeholder="Endereço, o que levar, observações...">${esc(e?.descricao)}</textarea>
-      <label>De quem é o evento?</label>
+      <label>Descrição</label><textarea name="descricao" placeholder="${c.phDesc}">${esc(e?.descricao)}</textarea>
+      <label>${c.quemLbl}</label>
       <div class="who-pick" id="evQuem">
-        <button type="button" class="chip ${sel.size?'':'on'}" data-fam="1">🏡 Família toda</button>
+        <button type="button" class="chip ${sel.size?'':'on'}" data-fam="1">${c.semPessoa}</button>
         ${S.membros.map(m => `<button type="button" class="chip ${sel.has(m.id)?'on':''}" data-m="${m.id}"><span class="dot" style="background:${esc(m.cor)}"></span>${esc(m.nome)}</button>`).join('')}
       </div>
-      ${S.membros.length ? '' : '<div style="font-size:13px;color:var(--muted);margin-top:6px">Cadastre as pessoas na aba Família para escolher de quem é o evento.</div>'}
+      ${S.membros.length ? '' : '<div style="font-size:13px;color:var(--muted);margin-top:6px">Cadastre as pessoas na aba Família para escolher de quem é.</div>'}
+      ${c.escolar ? `<label class="switch"><input type="checkbox" name="feito" ${e?.feito ? 'checked' : ''}> Tarefa já feita</label>` : ''}
       <label>Documentos anexados</label>
       <div class="files" id="evFiles"></div>
       <label class="attach">📎 Anexar documento ou foto<input type="file" id="evFile" multiple hidden></label>
@@ -656,8 +726,8 @@ function formEvento(e, dataPadrao){
     if (p) { pendentes.splice(+p.dataset.rmp, 1); return desenharArquivos(); }
     const r = ev.target.closest('[data-rmf]');
     if (r) {
-      if (!confirm('Remover este documento do evento?')) return;
-      const resp = await fetch(`/api/arquivo?id=${r.dataset.rmf}&evento=${e.id}`, { method:'DELETE' });
+      if (!confirm('Remover este documento?')) return;
+      const resp = await fetch(`/api/arquivo?id=${r.dataset.rmf}&evento=${e.id}&tabela=${c.tabela}`, { method:'DELETE' });
       if (!resp.ok) return toast('Não consegui remover');
       existentes = existentes.filter(a => a.id !== r.dataset.rmf); desenharArquivos(); toast('Documento removido'); carregar();
     }
@@ -679,26 +749,27 @@ function formEvento(e, dataPadrao){
       descricao: f.get('descricao').trim() || null,
       membros: [...box.querySelectorAll('[data-m].on')].map(b => b.dataset.m)
     };
+    if (c.escolar) { dados.materia = (f.get('materia') || '').trim() || null; dados.feito = !!f.get('feito'); }
     const btn = ev.target.querySelector('button[type=submit]'); btn.disabled = true; btn.textContent = 'Salvando…';
     const idExist = e ? e.id : idSalvo;
-    const r = idExist ? await db.from('eventos').update(dados).eq('id', idExist) : await db.from('eventos').insert(dados);
+    const r = idExist ? await db.from(c.tabela).update(dados).eq('id', idExist) : await db.from(c.tabela).insert(dados);
     if (r.error) { btn.disabled = false; btn.textContent = 'Salvar'; return toast('Erro: ' + r.error.message); }
     const id = idSalvo = idExist || r.data.id;
     let falhas = 0;
     const total = pendentes.length;
     for (let i = 0; pendentes.length > falhas; i++) {
       btn.textContent = `Enviando anexo ${i + 1} de ${total}…`;
-      try { await enviarAnexo(id, pendentes[falhas]); pendentes.splice(falhas, 1); }
+      try { await enviarAnexo(id, pendentes[falhas], c.tabela); pendentes.splice(falhas, 1); }
       catch (err) { falhas++; toast(err.message); }
     }
     desenharArquivos();
     await carregar();
-    if (!falhas) { toast('Evento salvo'); fechar(); }
+    if (!falhas) { toast(c.salvo); fechar(); }
     else { btn.disabled = false; btn.textContent = 'Salvar'; }
   };
   if (e) $('#evDel').onclick = async () => {
-    if (!confirm('Excluir este evento?')) return;
-    if (await op(db.from('eventos').delete().eq('id', e.id), 'Evento excluído')) fechar();
+    if (!confirm(c.excluir)) return;
+    if (await op(db.from(c.tabela).delete().eq('id', e.id), c.excluido)) fechar();
   };
 }
 
@@ -864,8 +935,9 @@ function formMembro(m){
   };
   if (m) $('#mbDel').onclick = async () => {
     if (!confirm(`Excluir ${m.nome}? Os eventos continuam na agenda.`)) return;
-    const evs = S.eventos.filter(e => e.membros?.includes(m.id));
-    for (const e of evs) await db.from('eventos').update({ membros: e.membros.filter(x => x !== m.id) }).eq('id', e.id);
+    for (const tab of ['eventos', 'tarefas'])
+      for (const e of S[tab].filter(x => x.membros?.includes(m.id)))
+        await db.from(tab).update({ membros: e.membros.filter(x => x !== m.id) }).eq('id', e.id);
     if (await op(db.from('membros').delete().eq('id', m.id), 'Pessoa excluída')) fechar();
   };
 }
@@ -886,28 +958,43 @@ function irPara(tab){
   window.scrollTo(0, 0);
 }
 document.querySelector('nav').onclick = e => { const b = e.target.closest('[data-tab]'); if (b) irPara(b.dataset.tab); };
-$('#fab').onclick = () => ({ agenda: () => formEvento(null, UI.agPer === 'mes' || UI.dia ? UI.dia : null), acoes: () => formAcao(), familia: () => formMembro() })[UI.tab]?.();
+$('#fab').onclick = () => ({ agenda: () => formItem('agenda', null, LT.agenda.u.dia), escola: () => formItem('escola', null, LT.escola.u.dia), acoes: () => formAcao(), familia: () => formMembro() })[UI.tab]?.();
 
 // ================== Eventos de clique ==================
-$('#agFiltro').onclick = e => { const b = e.target.closest('[data-q]'); if (b) { document.body.classList.remove('quieto'); UI.agQuem = b.dataset.q; renderAgenda(); } };
-$('#agPeriodo').onclick = e => { const b = e.target.closest('[data-p]'); if (!b) return; document.body.classList.remove('quieto'); UI.agPer = b.dataset.p; UI.dia = null; vibrar(); renderAgenda(); };
-$('#agSemana').onclick = e => {
-  const b = e.target.closest('[data-dia]'); if (!b) return; vibrar();
-  UI.dia = UI.dia === b.dataset.dia ? null : b.dataset.dia; renderAgenda();
-  if (!UI.dia) return;
-  const alvo = document.getElementById('dia-' + UI.dia);
-  if (alvo) alvo.scrollIntoView({ behavior:'smooth', block:'start' });
-  else { UI.agPer = 'mes'; UI.mes = UI.dia.slice(0, 7); renderAgenda(); }
-};
-$('#agCal').onclick = e => {
-  const n = e.target.closest('[data-mes]');
-  if (n) { const [a, m] = (UI.mes || hojeISO().slice(0, 7)).split('-').map(Number); const d = new Date(a, m - 1 + +n.dataset.mes, 1);
-    UI.mes = d.toLocaleDateString('en-CA').slice(0, 7); vibrar(); return renderAgenda(); }
-  const b = e.target.closest('[data-dia]'); if (!b) return;
-  UI.dia = b.dataset.dia; UI.mes = UI.dia.slice(0, 7); vibrar(); renderAgenda();
-};
+for (const k of Object.keys(LT)) {
+  const u = LT[k].u, rr = () => renderLinha(k), animar = () => document.body.classList.remove('quieto');
+  el(k, 'Filtro').onclick = e => { const b = e.target.closest('[data-q]'); if (b) { animar(); u.quem = b.dataset.q; vibrar(); rr(); } };
+  el(k, 'Periodo').onclick = e => { const b = e.target.closest('[data-p]'); if (!b) return; animar(); u.per = b.dataset.p; u.dia = null; vibrar(); rr(); };
+  el(k, 'Semana').onclick = e => {
+    const b = e.target.closest('[data-dia]'); if (!b) return; vibrar();
+    u.dia = u.dia === b.dataset.dia ? null : b.dataset.dia; rr();
+    if (!u.dia) return;
+    const alvo = document.getElementById(LT[k].p + 'dia-' + u.dia);
+    if (alvo) alvo.scrollIntoView({ behavior:'smooth', block:'start' });
+    else { u.per = 'mes'; u.mes = u.dia.slice(0, 7); rr(); }
+  };
+  el(k, 'Cal').onclick = e => {
+    const n = e.target.closest('[data-mes]');
+    if (n) { const [a, m] = (u.mes || hojeISO().slice(0, 7)).split('-').map(Number); const d = new Date(a, m - 1 + +n.dataset.mes, 1);
+      u.mes = d.toLocaleDateString('en-CA').slice(0, 7); vibrar(); return rr(); }
+    const b = e.target.closest('[data-dia]'); if (!b) return;
+    u.dia = b.dataset.dia; u.mes = u.dia.slice(0, 7); vibrar(); rr();
+  };
+  el(k, 'Lista').onclick = async e => {
+    if (e.target.closest('a')) return;
+    const fz = e.target.closest('[data-feito]');
+    if (fz) {
+      const t = S.tarefas.find(x => x.id === fz.dataset.feito); if (!t) return;
+      fz.classList.add('on', 'pop'); vibrar(15);
+      await op(db.from('tarefas').update({ feito: !t.feito }).eq('id', t.id), t.feito ? 'Tarefa reaberta' : 'Tarefa feita! 👏');
+      if (!t.feito && !S.tarefas.some(x => !x.feito && x.data <= addDias(hojeISO(), 1))) confete();
+      return;
+    }
+    const c = e.target.closest('[data-it]');
+    if (c) formItem(k, S[LT[k].tabela].find(x => x.id === c.dataset.it));
+  };
+}
 document.querySelector('.stats').onclick = e => { const b = e.target.closest('[data-go]'); if (b) { vibrar(); irPara(b.dataset.go); } };
-$('#agLista').onclick = e => { if (e.target.closest('a')) return; const c = e.target.closest('[data-ev]'); if (c) formEvento(S.eventos.find(x => x.id === c.dataset.ev)); };
 
 $('#mkForm').onsubmit = async e => {
   e.preventDefault();

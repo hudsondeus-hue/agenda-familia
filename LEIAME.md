@@ -1,7 +1,7 @@
 # Agenda da Família — como colocar no ar
 
-App com 4 abas: **Agenda**, **Supermercado**, **Ações Futuras** e **Família**.
-Toda manhã, entre 8h e 9h, cada pessoa recebe no WhatsApp os eventos do dia dela + os da família toda.
+App com 5 abas: **Agenda**, **Escola** (tarefas escolares), **Supermercado**, **Ações Futuras** e **Família**.
+Toda manhã, entre 6h e 7h, cada pessoa recebe no WhatsApp os eventos do dia dela + os da família toda, e as tarefas escolares que vencem hoje ou amanhã.
 
 Usa apenas **GitHub** + **Vercel** (o banco de dados é o Neon Postgres, ativado dentro da própria Vercel, plano grátis) e o **CallMeBot** (WhatsApp, grátis).
 
@@ -34,7 +34,7 @@ Não precisa criar tabelas: o app cria tudo sozinho no primeiro acesso.
 
 ## Dúvidas comuns
 - **Testar o aviso agora:** crie um evento para hoje → Vercel → **Settings → Cron Jobs** → **Run**.
-- **Mudar o horário:** em `vercel.json`, `"0 11 * * *"` = 8h de Brasília (UTC−3). Para 7h, `"0 10 * * *"`.
+- **Mudar o horário:** em `vercel.json`, `"0 9 * * *"` = 6h de Brasília (UTC−3). No plano grátis a Vercel dispara em algum minuto dentro dessa hora (6h00–6h59). Para 7h, `"0 10 * * *"`.
 - **Atualização:** o app recarrega sozinho a cada 20 segundos e sempre que você volta para ele.
 - **Segurança:** sem login — compartilhe o link só com a família.
 - **Plano grátis do Neon:** 0,5 GB de dados — anos de uso para uma família.

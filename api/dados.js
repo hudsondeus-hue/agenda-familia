@@ -7,12 +7,14 @@ import { randomUUID } from 'node:crypto';
 const CAMPOS = {
   membros: ['nome', 'telefone', 'apikey', 'cor', 'avisar'],
   eventos: ['data', 'hora', 'nome', 'descricao', 'membros'],
+  tarefas: ['data', 'hora', 'nome', 'descricao', 'membros', 'materia', 'feito'],
   supermercado: ['item', 'quantidade', 'adicionado_por', 'comprado'],
   acoes: ['nome', 'descricao', 'responsavel', 'prazo', 'status']
 };
 const PADRAO = {
   membros: { cor: '#3b82f6', avisar: true },
   eventos: { hora: null, descricao: null, membros: [], anexos: [] },
+  tarefas: { hora: null, descricao: null, membros: [], materia: null, feito: false, anexos: [] },
   supermercado: { quantidade: null, adicionado_por: null, comprado: false },
   acoes: { descricao: null, responsavel: null, prazo: null, status: 'Pendente' }
 };
@@ -48,7 +50,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ alterados: alvos.length });
     }
     if (acao === 'excluir') {
-      if (tabela === 'eventos') await apagarArquivos(alvos.flatMap(e => (e.anexos || []).map(a => a.id)));
+      if (tabela === 'eventos' || tabela === 'tarefas') await apagarArquivos(alvos.flatMap(e => (e.anexos || []).map(a => a.id)));
       return res.status(200).json({ excluidos: await excluir(tabela, alvos.map(i => i.id)) });
     }
     return res.status(400).json({ erro: 'ação inválida' });

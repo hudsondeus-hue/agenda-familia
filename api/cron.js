@@ -17,9 +17,12 @@ export default async function handler(req, res) {
     const eventos = tudo.eventos.filter(e => e.data === hoje)
       .sort((x, y) => (x.hora || '').localeCompare(y.hora || ''));
     const membros = tudo.membros.filter(m => m.avisar !== false);
+    const amanha = new Date(Date.UTC(...hoje.split('-').map((v, i) => i === 1 ? v - 1 : +v)) + 864e5).toISOString().slice(0, 10);
+    const tarefas = (tudo.tarefas || []).filter(t => !t.feito && (t.data === hoje || t.data === amanha))
+      .sort((x, y) => x.data.localeCompare(y.data) || (x.hora || '').localeCompare(y.hora || ''));
     const nomePorId = Object.fromEntries(tudo.membros.map(x => [x.id, x.nome]));
 
-    if (!eventos.length) return res.status(200).json({ hoje, eventos: 0, enviados: [] });
+    if (!eventos.length && !tarefas.length) return res.status(200).json({ hoje, eventos: 0, enviados: [] });
 
     const [a, m, d] = hoje.split('-').map(Number);
     const diaSemana = DIAS[new Date(Date.UTC(a, m - 1, d)).getUTCDay()];
@@ -29,7 +32,11 @@ export default async function handler(req, res) {
     const enviados = [];
     for (const membro of membros) {
       const meus = eventos.filter(e => !e.membros || !e.membros.length || e.membros.includes(membro.id));
-      if (!meus.length) continue;
+      const minhasTarefas = tarefas.filter(t => !t.membros || !t.membros.length || t.membros.includes(membro.id));
+      if (!meus.length && !minhasTarefas.length) continue;
+
+      const linkAnexos = item => (item.anexos || []).map(anx => `\n📎 ${anx.nome}` +
+        (base ? `: ${base}/api/arquivo?id=${anx.id}&nome=${encodeURIComponent(anx.nome)}&tipo=${encodeURIComponent(anx.tipo)}` : '')).join('');
 
       const linhas = meus.map(e => {
         const hora = e.hora ? e.hora.slice(0, 5) : 'Dia todo';
@@ -38,17 +45,22 @@ export default async function handler(req, res) {
           : 'Família toda';
         let t = `⏰ *${hora}* — *${e.nome}*\n👤 ${quem}`;
         if (e.descricao) t += `\n📝 ${e.descricao}`;
-        for (const anx of e.anexos || []) {
-          t += `\n📎 ${anx.nome}`;
-          if (base) t += `: ${base}/api/arquivo?id=${anx.id}&nome=${encodeURIComponent(anx.nome)}&tipo=${encodeURIComponent(anx.tipo)}`;
-        }
-        return t;
+        return t + linkAnexos(e);
       });
 
-      const texto =
-        `Bom dia, ${membro.nome}! ☀️\n` +
-        `📅 *Agenda da Família — ${diaSemana}, ${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}*\n\n` +
-        linhas.join('\n\n');
+      const linhasTarefas = minhasTarefas.map(t => {
+        const quando = t.data === hoje ? 'HOJE' : 'amanhã';
+        const quem = t.membros && t.membros.length ? t.membros.map(id => nomePorId[id]).filter(Boolean).join(', ') : '';
+        let x = `📚 *${t.nome}*${t.materia ? ` (${t.materia})` : ''} — entrega ${quando}${t.hora ? ' às ' + t.hora.slice(0, 5) : ''}`;
+        if (quem) x += `\n👤 ${quem}`;
+        if (t.descricao) x += `\n📝 ${t.descricao}`;
+        return x + linkAnexos(t);
+      });
+
+      let texto = `Bom dia, ${membro.nome}! ☀️\n` +
+        `📅 *Agenda da Família — ${diaSemana}, ${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}*`;
+      if (linhas.length) texto += '\n\n' + linhas.join('\n\n');
+      if (linhasTarefas.length) texto += '\n\n🎒 *Tarefas escolares*\n\n' + linhasTarefas.join('\n\n');
 
       enviados.push(await enviarWhatsApp(membro, texto));
       await espera(1500); // evita bloqueio por excesso de mensagens seguidas
