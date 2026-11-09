@@ -1,18 +1,42 @@
 // Funções compartilhadas pelas rotas da API (arquivos com "_" não viram rota na Vercel)
-// Banco de dados: Upstash Redis (ativado em Vercel → Storage). Cada tabela é um hash "af:<tabela>".
 
 export const TABELAS = ['membros', 'eventos', 'supermercado', 'acoes'];
 
-function redisEnv() {
-  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-  if (!url || !token) throw new Error('BANCO_NAO_CONECTADO');
-  return { url: url.replace(/\/$/, ''), token };
+// ---------- Banco de dados ----------
+// Usa Neon Postgres (Vercel → Storage → Neon, plano Free).
+// Se houver um Upstash Redis conectado em vez dele, usa o Redis.
+
+const chave = t => `af:${t}`;
+const usarRedis = () => !!(process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL) &&
+  !(process.env.DATABASE_URL || process.env.POSTGRES_URL);
+
+// ----- Postgres (Neon) -----
+let _sql = null, _pronto = null;
+async function pg(texto, params = []) {
+  if (!_sql) {
+    if (globalThis.__SQL__) _sql = globalThis.__SQL__;            // usado só nos testes
+    else {
+      const url = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+      if (!url) throw new Error('BANCO_NAO_CONECTADO');
+      const { neon } = await import('@neondatabase/serverless');
+      const c = neon(url);
+      _sql = (t, p) => c.query(t, p);
+    }
+  }
+  if (!_pronto) {
+    // Cria a tabela sozinho no primeiro acesso — não precisa rodar SQL à mão
+    _pronto = _sql(`create table if not exists registros (
+      tabela text not null, id text not null, dados jsonb not null,
+      primary key (tabela, id))`, []).catch(e => { _pronto = null; throw e; });
+  }
+  await _pronto;
+  return _sql(texto, params);
 }
 
-// Executa vários comandos Redis numa única chamada
-export async function redis(...comandos) {
-  const { url, token } = redisEnv();
+// ----- Redis (Upstash), alternativa -----
+async function redis(...comandos) {
+  const url = (process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL).replace(/\/$/, '');
+  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
   const r = await fetch(`${url}/pipeline`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -24,40 +48,47 @@ export async function redis(...comandos) {
   if (erro) throw new Error('Redis: ' + erro.error);
   return res.map(x => x.result);
 }
-
-const chave = t => `af:${t}`;
-
 function hashParaLista(arr) {
   const out = [];
-  for (let i = 0; i < (arr || []).length; i += 2) {
-    try { out.push(JSON.parse(arr[i + 1])); } catch {}
-  }
+  for (let i = 0; i < (arr || []).length; i += 2) { try { out.push(JSON.parse(arr[i + 1])); } catch {} }
   return out;
 }
 
+// ----- Operações usadas pelo app -----
 export async function lerTudo() {
-  const res = await redis(...TABELAS.map(t => ['HGETALL', chave(t)]));
-  return Object.fromEntries(TABELAS.map((t, i) => [t, hashParaLista(res[i])]));
+  const tudo = Object.fromEntries(TABELAS.map(t => [t, []]));
+  if (usarRedis()) {
+    const res = await redis(...TABELAS.map(t => ['HGETALL', chave(t)]));
+    TABELAS.forEach((t, i) => { tudo[t] = hashParaLista(res[i]); });
+    return tudo;
+  }
+  const rows = await pg('select tabela, dados from registros', []);
+  for (const r of rows) if (tudo[r.tabela]) tudo[r.tabela].push(r.dados);
+  return tudo;
 }
 
 export async function lerTabela(t) {
-  const [res] = await redis(['HGETALL', chave(t)]);
-  return hashParaLista(res);
+  if (usarRedis()) { const [res] = await redis(['HGETALL', chave(t)]); return hashParaLista(res); }
+  return (await pg('select dados from registros where tabela = $1', [t])).map(r => r.dados);
 }
 
 export async function salvar(t, item) {
-  await redis(['HSET', chave(t), item.id, JSON.stringify(item)]);
+  if (usarRedis()) { await redis(['HSET', chave(t), item.id, JSON.stringify(item)]); return item; }
+  await pg(`insert into registros (tabela, id, dados) values ($1, $2, $3::jsonb)
+            on conflict (tabela, id) do update set dados = excluded.dados`, [t, item.id, JSON.stringify(item)]);
   return item;
 }
 
 export async function obter(t, id) {
-  const [v] = await redis(['HGET', chave(t), id]);
-  return v ? JSON.parse(v) : null;
+  if (usarRedis()) { const [v] = await redis(['HGET', chave(t), id]); return v ? JSON.parse(v) : null; }
+  const rows = await pg('select dados from registros where tabela = $1 and id = $2', [t, id]);
+  return rows[0] ? rows[0].dados : null;
 }
 
 export async function excluir(t, ids) {
   if (!ids.length) return 0;
-  await redis(['HDEL', chave(t), ...ids]);
+  if (usarRedis()) { await redis(['HDEL', chave(t), ...ids]); return ids.length; }
+  await pg('delete from registros where tabela = $1 and id = any($2::text[])', [t, ids]);
   return ids.length;
 }
 

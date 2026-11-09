@@ -3,7 +3,7 @@
 App com 4 abas: **Agenda**, **Supermercado**, **Ações Futuras** e **Família**.
 Toda manhã, entre 8h e 9h, cada pessoa recebe no WhatsApp os eventos do dia dela + os da família toda.
 
-Usa apenas **GitHub** + **Vercel** (o banco de dados é o Upstash Redis, ativado dentro da própria Vercel, plano grátis) e o **CallMeBot** (WhatsApp, grátis).
+Usa apenas **GitHub** + **Vercel** (o banco de dados é o Neon Postgres, ativado dentro da própria Vercel, plano grátis) e o **CallMeBot** (WhatsApp, grátis).
 
 ## 1. GitHub
 1. github.com → **+** → **New repository** → nome `agenda-familia` → **Create repository**.
@@ -14,11 +14,13 @@ Usa apenas **GitHub** + **Vercel** (o banco de dados é o Upstash Redis, ativado
 2. Em **Environment Variables**, crie `CRON_SECRET` com uma senha qualquer (ex.: `familia2026xyz`).
 3. **Deploy**.
 
-## 3. Vercel — criar o banco de dados
-1. No projeto, abra a aba **Storage** → **Create Database** (ou *Browse Marketplace*) → **Upstash for Redis** → **Continue**.
-2. Escolha o plano **Free**, região **São Paulo** (ou a mais próxima), dê o nome `agenda-familia-db` → **Create**.
-3. Na tela seguinte, confirme a conexão com o projeto `agenda-familia` (marque Production, Preview e Development) → **Connect**.
+## 3. Vercel — criar o banco de dados (Neon, grátis)
+1. No projeto, abra a aba **Storage** → **Create Database** → **Neon** → **Continue**.
+2. Escolha o plano **Free**, região **São Paulo** (ou a mais próxima), nome `agenda-familia-db` → **Create**.
+3. Confirme a conexão com o projeto `agenda-familia` (Production, Preview e Development marcados) → **Connect**.
 4. Aba **Deployments** → nos **⋯** do último deploy → **Redeploy**.
+
+Não precisa criar tabelas: o app cria tudo sozinho no primeiro acesso.
 
 ## 4. Família e WhatsApp
 1. Abra o app → aba **Família** → **+** e cadastre cada pessoa (nome e WhatsApp com 55 e DDD).
@@ -35,4 +37,4 @@ Usa apenas **GitHub** + **Vercel** (o banco de dados é o Upstash Redis, ativado
 - **Mudar o horário:** em `vercel.json`, `"0 11 * * *"` = 8h de Brasília (UTC−3). Para 7h, `"0 10 * * *"`.
 - **Atualização:** o app recarrega sozinho a cada 20 segundos e sempre que você volta para ele.
 - **Segurança:** sem login — compartilhe o link só com a família.
-- **Limite grátis do Upstash:** 500 mil operações/mês, muito acima do uso de uma família.
+- **Plano grátis do Neon:** 0,5 GB de dados — anos de uso para uma família.
