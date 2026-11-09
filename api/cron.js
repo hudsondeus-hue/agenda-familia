@@ -24,6 +24,8 @@ export default async function handler(req, res) {
     const [a, m, d] = hoje.split('-').map(Number);
     const diaSemana = DIAS[new Date(Date.UTC(a, m - 1, d)).getUTCDay()];
 
+    const dominio = process.env.VERCEL_PROJECT_PRODUCTION_URL || req.headers['x-forwarded-host'] || req.headers.host;
+    const base = dominio ? `https://${dominio}` : '';
     const enviados = [];
     for (const membro of membros) {
       const meus = eventos.filter(e => !e.membros || !e.membros.length || e.membros.includes(membro.id));
@@ -36,6 +38,10 @@ export default async function handler(req, res) {
           : 'Família toda';
         let t = `⏰ *${hora}* — *${e.nome}*\n👤 ${quem}`;
         if (e.descricao) t += `\n📝 ${e.descricao}`;
+        for (const anx of e.anexos || []) {
+          t += `\n📎 ${anx.nome}`;
+          if (base) t += `: ${base}/api/arquivo?id=${anx.id}&nome=${encodeURIComponent(anx.nome)}&tipo=${encodeURIComponent(anx.tipo)}`;
+        }
         return t;
       });
 

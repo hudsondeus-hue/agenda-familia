@@ -43,9 +43,13 @@ async function pg(texto, params = []) {
   }
   if (!_pronto) {
     // Cria a tabela sozinho no primeiro acesso — não precisa rodar SQL à mão
-    _pronto = _sql(`create table if not exists registros (
-      tabela text not null, id text not null, dados jsonb not null,
-      primary key (tabela, id))`, []).catch(e => { _pronto = null; throw e; });
+    _pronto = (async () => {
+      await _sql(`create table if not exists registros (
+        tabela text not null, id text not null, dados jsonb not null,
+        primary key (tabela, id))`, []);
+      await _sql(`create table if not exists arquivos (
+        id text primary key, conteudo text not null, created_at timestamptz default now())`, []);
+    })().catch(e => { _pronto = null; throw e; });
   }
   await _pronto;
   return _sql(texto, params);
@@ -110,6 +114,22 @@ export async function excluir(t, ids) {
   if (usarRedis()) { await redis(['HDEL', chave(t), ...ids]); return ids.length; }
   await pg('delete from registros where tabela = $1 and id = any($2::text[])', [t, ids]);
   return ids.length;
+}
+
+// ----- Conteúdo dos anexos (guardado em base64) -----
+export async function gravarArquivo(id, base64) {
+  if (usarRedis()) { await redis(['SET', `af:arq:${id}`, base64]); return; }
+  await pg('insert into arquivos (id, conteudo) values ($1, $2) on conflict (id) do update set conteudo = excluded.conteudo', [id, base64]);
+}
+export async function lerArquivo(id) {
+  if (usarRedis()) { const [v] = await redis(['GET', `af:arq:${id}`]); return v || null; }
+  const rows = await pg('select conteudo from arquivos where id = $1', [id]);
+  return rows[0] ? rows[0].conteudo : null;
+}
+export async function apagarArquivos(ids) {
+  if (!ids || !ids.length) return;
+  if (usarRedis()) { await redis(['DEL', ...ids.map(i => `af:arq:${i}`)]); return; }
+  await pg('delete from arquivos where id = any($1::text[])', [ids]);
 }
 
 // Data de hoje no fuso de Brasília, formato AAAA-MM-DD

@@ -58,6 +58,15 @@ section.on{display:block;animation:fade .2s ease}
 .card .t{font-weight:800;font-size:16px;margin-bottom:2px;word-wrap:break-word}
 .card .d{color:var(--muted);font-size:14px;white-space:pre-wrap;word-wrap:break-word}
 .who{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.anx{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.anx a{font-size:12px;font-weight:700;padding:4px 10px;border-radius:8px;background:#e8f0ec;color:var(--brand);text-decoration:none;display:inline-flex;align-items:center;gap:4px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.files{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.file{display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:8px 10px;font-size:14px}
+.file .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
+.file .n a{color:var(--ink);text-decoration:none}
+.file .s{color:var(--muted);font-size:12px;white-space:nowrap}
+.file.pend .s{color:var(--accent)}
+.attach{display:flex;align-items:center;justify-content:center;gap:8px;border:1.5px dashed #c9bfa9;border-radius:12px;padding:11px;font-weight:800;color:var(--brand);cursor:pointer;margin-top:6px;background:transparent;width:100%}
 .tag{font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--chip);display:inline-flex;align-items:center;gap:5px}
 
 /* Supermercado */
@@ -331,10 +340,44 @@ function renderAgenda(){
     const quem = e.membros && e.membros.length ? e.membros.map(tagMembro).join('') : '<span class="tag">🏡 Família toda</span>';
     html += `<div class="card" data-ev="${e.id}">
       <div class="ev-time">${e.hora ? esc(e.hora.slice(0,5)) : '<small>DIA</small>TODO'}</div>
-      <div class="body"><div class="t">${esc(e.nome)}</div>${e.descricao ? `<div class="d">${esc(e.descricao)}</div>` : ''}<div class="who">${quem}</div></div>
+      <div class="body"><div class="t">${esc(e.nome)}</div>${e.descricao ? `<div class="d">${esc(e.descricao)}</div>` : ''}<div class="who">${quem}</div>${anexosLinks(e)}</div>
     </div>`;
   }
   $('#agLista').innerHTML = html;
+}
+
+function linkAnexo(a){ return `/api/arquivo?id=${a.id}&nome=${encodeURIComponent(a.nome)}&tipo=${encodeURIComponent(a.tipo)}`; }
+function iconeAnexo(a){ return /^image\//.test(a.tipo) ? '🖼️' : /pdf/.test(a.tipo) ? '📄' : '📎'; }
+function tamanhoTxt(n){ return n > 1048576 ? (n/1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(n/1024)) + ' KB'; }
+function anexosLinks(e){
+  if (!e.anexos || !e.anexos.length) return '';
+  return `<div class="anx">${e.anexos.map(a => `<a href="${linkAnexo(a)}" target="_blank" rel="noopener">${iconeAnexo(a)} ${esc(a.nome)}</a>`).join('')}</div>`;
+}
+
+// Lê o arquivo; fotos grandes são reduzidas para caber no limite
+const LIMITE_ANEXO = 3 * 1024 * 1024;
+function lerComoBase64(blob){
+  return new Promise((ok, erro) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.onerror = erro; r.readAsDataURL(blob); });
+}
+async function prepararArquivo(file){
+  let blob = file, nome = file.name, tipo = file.type || 'application/octet-stream';
+  if (/^image\/(jpeg|png|webp|heic|heif)/i.test(tipo) && file.size > 600 * 1024) {
+    try {
+      const bmp = await createImageBitmap(file);
+      const k = Math.min(1, 1800 / Math.max(bmp.width, bmp.height));
+      const c = document.createElement('canvas'); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+      c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+      blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.82));
+      tipo = 'image/jpeg'; nome = nome.replace(/\.\w+$/, '') + '.jpg';
+    } catch {}
+  }
+  if (blob.size > LIMITE_ANEXO) throw new Error(`"${file.name}" tem mais de 3 MB`);
+  return { nome, tipo, tamanho: blob.size, base64: await lerComoBase64(blob) };
+}
+async function enviarAnexo(eventoId, arq){
+  const r = await fetch('/api/arquivo', { method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ evento_id: eventoId, nome: arq.nome, tipo: arq.tipo, base64: arq.base64 }) });
+  if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.erro || 'falha ao enviar ' + arq.nome); }
 }
 
 function formEvento(e){
@@ -354,11 +397,46 @@ function formEvento(e){
         ${S.membros.map(m => `<button type="button" class="chip ${sel.has(m.id)?'on':''}" data-m="${m.id}"><span class="dot" style="background:${esc(m.cor)}"></span>${esc(m.nome)}</button>`).join('')}
       </div>
       ${S.membros.length ? '' : '<div style="font-size:13px;color:var(--muted);margin-top:6px">Cadastre as pessoas na aba Família para escolher de quem é o evento.</div>'}
+      <label>Documentos anexados</label>
+      <div class="files" id="evFiles"></div>
+      <label class="attach">📎 Anexar documento ou foto<input type="file" id="evFile" multiple hidden></label>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">PDF, foto, Word… até 3 MB cada (fotos grandes são reduzidas sozinhas).</div>
       <div class="actions">
         ${e ? '<button type="button" class="btn danger" id="evDel">Excluir</button>' : ''}
         <button class="btn" type="submit">Salvar</button>
       </div>
     </form>`);
+
+  // Anexos: os já salvos + os escolhidos agora (enviados ao salvar)
+  const pendentes = [];
+  let idSalvo = null;
+  let existentes = (e?.anexos || []).slice();
+  const desenharArquivos = () => {
+    $('#evFiles').innerHTML = existentes.map(a => `<div class="file"><span>${iconeAnexo(a)}</span>
+        <div class="n"><a href="${linkAnexo(a)}" target="_blank" rel="noopener">${esc(a.nome)}</a></div>
+        <span class="s">${tamanhoTxt(a.tamanho)}</span><button type="button" class="x" data-rmf="${a.id}" aria-label="Remover">×</button></div>`).join('')
+      + pendentes.map((a, i) => `<div class="file pend"><span>${iconeAnexo(a)}</span><div class="n">${esc(a.nome)}</div>
+        <span class="s">a enviar · ${tamanhoTxt(a.tamanho)}</span><button type="button" class="x" data-rmp="${i}" aria-label="Remover">×</button></div>`).join('')
+      || '<div style="font-size:13px;color:var(--muted)">Nenhum documento.</div>';
+  };
+  desenharArquivos();
+  $('#evFile').onchange = async ev => {
+    for (const f of ev.target.files) {
+      try { pendentes.push(await prepararArquivo(f)); } catch (err) { toast(err.message); }
+    }
+    ev.target.value = ''; desenharArquivos();
+  };
+  $('#evFiles').onclick = async ev => {
+    const p = ev.target.closest('[data-rmp]');
+    if (p) { pendentes.splice(+p.dataset.rmp, 1); return desenharArquivos(); }
+    const r = ev.target.closest('[data-rmf]');
+    if (r) {
+      if (!confirm('Remover este documento do evento?')) return;
+      const resp = await fetch(`/api/arquivo?id=${r.dataset.rmf}&evento=${e.id}`, { method:'DELETE' });
+      if (!resp.ok) return toast('Não consegui remover');
+      existentes = existentes.filter(a => a.id !== r.dataset.rmf); desenharArquivos(); toast('Documento removido'); carregar();
+    }
+  };
 
   const box = $('#evQuem');
   box.onclick = ev => {
@@ -376,8 +454,22 @@ function formEvento(e){
       descricao: f.get('descricao').trim() || null,
       membros: [...box.querySelectorAll('[data-m].on')].map(b => b.dataset.m)
     };
-    const ok = await op(e ? db.from('eventos').update(dados).eq('id', e.id) : db.from('eventos').insert(dados), 'Evento salvo');
-    if (ok) fechar();
+    const btn = ev.target.querySelector('button[type=submit]'); btn.disabled = true; btn.textContent = 'Salvando…';
+    const idExist = e ? e.id : idSalvo;
+    const r = idExist ? await db.from('eventos').update(dados).eq('id', idExist) : await db.from('eventos').insert(dados);
+    if (r.error) { btn.disabled = false; btn.textContent = 'Salvar'; return toast('Erro: ' + r.error.message); }
+    const id = idSalvo = idExist || r.data.id;
+    let falhas = 0;
+    const total = pendentes.length;
+    for (let i = 0; pendentes.length > falhas; i++) {
+      btn.textContent = `Enviando anexo ${i + 1} de ${total}…`;
+      try { await enviarAnexo(id, pendentes[falhas]); pendentes.splice(falhas, 1); }
+      catch (err) { falhas++; toast(err.message); }
+    }
+    desenharArquivos();
+    await carregar();
+    if (!falhas) { toast('Evento salvo'); fechar(); }
+    else { btn.disabled = false; btn.textContent = 'Salvar'; }
   };
   if (e) $('#evDel').onclick = async () => {
     if (!confirm('Excluir este evento?')) return;
@@ -535,7 +627,7 @@ $('#fab').onclick = () => ({ agenda: () => formEvento(), acoes: () => formAcao()
 // ================== Eventos de clique ==================
 $('#agFiltro').onclick = e => { const b = e.target.closest('[data-q]'); if (b) { UI.agQuem = b.dataset.q; renderAgenda(); } };
 $('#agPeriodo').onclick = e => { const b = e.target.closest('[data-p]'); if (!b) return; UI.agPer = b.dataset.p; $('#agPeriodo').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); renderAgenda(); };
-$('#agLista').onclick = e => { const c = e.target.closest('[data-ev]'); if (c) formEvento(S.eventos.find(x => x.id === c.dataset.ev)); };
+$('#agLista').onclick = e => { if (e.target.closest('a')) return; const c = e.target.closest('[data-ev]'); if (c) formEvento(S.eventos.find(x => x.id === c.dataset.ev)); };
 
 $('#mkForm').onsubmit = async e => {
   e.preventDefault();

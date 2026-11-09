@@ -1,7 +1,7 @@
 // API do app: lê e grava os dados da família no Upstash Redis.
 // GET  /api/dados                     → todas as tabelas
 // POST /api/dados { acao, tabela, ... } → inserir | atualizar | excluir
-import { TABELAS, lerTudo, lerTabela, salvar, obter, excluir } from './_lib.js';
+import { TABELAS, lerTudo, lerTabela, salvar, obter, excluir, apagarArquivos } from './_lib.js';
 import { randomUUID } from 'node:crypto';
 
 const CAMPOS = {
@@ -12,7 +12,7 @@ const CAMPOS = {
 };
 const PADRAO = {
   membros: { cor: '#3b82f6', avisar: true },
-  eventos: { hora: null, descricao: null, membros: [] },
+  eventos: { hora: null, descricao: null, membros: [], anexos: [] },
   supermercado: { quantidade: null, adicionado_por: null, comprado: false },
   acoes: { descricao: null, responsavel: null, prazo: null, status: 'Pendente' }
 };
@@ -48,6 +48,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ alterados: alvos.length });
     }
     if (acao === 'excluir') {
+      if (tabela === 'eventos') await apagarArquivos(alvos.flatMap(e => (e.anexos || []).map(a => a.id)));
       return res.status(200).json({ excluidos: await excluir(tabela, alvos.map(i => i.id)) });
     }
     return res.status(400).json({ erro: 'ação inválida' });
